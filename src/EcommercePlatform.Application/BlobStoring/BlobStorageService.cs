@@ -14,12 +14,16 @@ namespace EcommercePlatform.BlobStoring;
 
 public class BlobStorageService : DomainService, IBlobStorageService
 {
-    private readonly IBlobContainer _container;
+    private readonly IBlobContainer<EcommerceContainer> _container;
     private readonly IConfiguration _configuration;
     private readonly DefaultBlobContainerConfigurationProvider _blobContainerConfigurationProvider;
     private readonly DefaultBlobFilePathCalculator _defaultBlobFilePathCalculator;
 
-    public BlobStorageService(IBlobContainer container, IConfiguration configuration, DefaultBlobContainerConfigurationProvider blobContainerConfigurationProvider, DefaultBlobFilePathCalculator defaultBlobFilePathCalculator)
+    public BlobStorageService(
+        IBlobContainer<EcommerceContainer> container, 
+        IConfiguration configuration, 
+        DefaultBlobContainerConfigurationProvider blobContainerConfigurationProvider, 
+        DefaultBlobFilePathCalculator defaultBlobFilePathCalculator)
     {
         _container = container;
         _configuration = configuration;

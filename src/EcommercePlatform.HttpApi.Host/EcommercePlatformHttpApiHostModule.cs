@@ -2,6 +2,8 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Text.Json;
+using System.Text.Json.Serialization;
 using EcommercePlatform.Containers;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Cors;
@@ -34,6 +36,8 @@ using Volo.Abp.UI.Navigation.Urls;
 using Volo.Abp.VirtualFileSystem;
 using Microsoft.AspNetCore.Hosting;
 using EcommercePlatform.BlobStoring;
+using Volo.Abp.Content;
+using Microsoft.AspNetCore.Mvc;
 
 namespace EcommercePlatform;
 
@@ -77,6 +81,7 @@ public class EcommercePlatformHttpApiHostModule : AbpModule
         ConfigureCors(context, configuration);
         ConfigureSwaggerServices(context, configuration);
         ConfigureBlobStorage(context, hostingEnvironment);
+        ConfigureJsonOptions(context);
     }
 
     private void ConfigureAuthentication(ServiceConfigurationContext context)
@@ -142,7 +147,13 @@ public class EcommercePlatformHttpApiHostModule : AbpModule
     {
         Configure<AbpAspNetCoreMvcOptions>(options =>
         {
-            options.ConventionalControllers.Create(typeof(EcommercePlatformApplicationModule).Assembly);
+            options.ConventionalControllers.Create(typeof(EcommercePlatformApplicationModule).Assembly, opts =>
+            {
+                // Exclude services that have explicit controllers
+                opts.TypePredicate = type => 
+                    !type.Name.Contains("ProductAppService") && 
+                    !type.Name.Contains("CategoryAppService");
+            });
         });
     }
 
@@ -195,6 +206,19 @@ public class EcommercePlatformHttpApiHostModule : AbpModule
                     filesystem.AppendContainerNameToBasePath = true;
                 });
             });
+        });
+    }
+
+    private void ConfigureJsonOptions(ServiceConfigurationContext context)
+    {
+        context.Services.Configure<Microsoft.AspNetCore.Http.Json.JsonOptions>(options =>
+        {
+            options.SerializerOptions.DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull;
+        });
+        
+        context.Services.Configure<Microsoft.AspNetCore.Mvc.JsonOptions>(options =>
+        {
+            options.JsonSerializerOptions.DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull;
         });
     }
 

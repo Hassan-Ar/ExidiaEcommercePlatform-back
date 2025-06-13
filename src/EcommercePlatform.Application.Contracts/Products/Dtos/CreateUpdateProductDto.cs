@@ -1,5 +1,6 @@
 using System;
 using System.ComponentModel.DataAnnotations;
+using System.Text.Json.Serialization;
 using Volo.Abp.Content;
 
 namespace EcommercePlatform.Products.Dtos;
@@ -23,7 +24,7 @@ public class CreateUpdateProductDto
     [StringLength(64)]
     public string SKU { get; set; }
 
-    public IRemoteStreamContent Image { get; set; }
+    public IRemoteStreamContent? Image { get; set; }
 
     public bool IsActive { get; set; }
 
