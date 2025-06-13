@@ -263,3 +263,4 @@ src/EcommercePlatform.Blazor.Server.Tiered/Logs/*
 
 # Use abp install-libs to restore.
 **/wwwroot/libs/*
+/src/EcommercePlatform.HttpApi.Host/wwwroot/EcommerceImages/host/ecommerce
