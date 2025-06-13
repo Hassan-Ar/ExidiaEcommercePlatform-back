@@ -1,0 +1,116 @@
+@page "/cart"
+@using EcommercePlatform.Carts.Dtos
+@using EcommercePlatform.Carts
+@using Volo.Abp.AspNetCore.Components.Web.Theming.Layout
+@inherits EcommercePlatformComponentBase
+
+@inject ICartAppService CartAppService
+
+@if (Cart == null)
+{
+    <p>Loading cart...</p>
+}
+else if (Cart.Items.Any() == false)
+{
+    <p>Your cart is empty.</p>
+    <a href="/products" class="btn btn-primary">Continue Shopping</a>
+}
+else
+{
+    <Card>
+        <CardHeader>
+            <CardTitle>Your Shopping Cart</CardTitle>
+        </CardHeader>
+        <CardBody>
+            <table class="table table-striped">
+                <thead>
+                    <tr>
+                        <th>Product</th>
+                        <th>SKU</th>
+                        <th>Unit Price</th>
+                        <th>Quantity</th>
+                        <th>Total Price</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var item in Cart.Items)
+                    {
+                        <tr>
+                            <td>@item.ProductName</td>
+                            <td>@item.ProductSku</td>
+                            <td>@item.UnitPrice.ToString("C")</td>
+                            <td>
+                                <input type="number" @bind-value="item.Quantity" @onchange="(e) => UpdateItemQuantity(item.Id, Convert.ToInt32(e.Value))" min="1" style="width: 80px;" />
+                            </td>
+                            <td>@item.TotalPrice.ToString("C")</td>
+                            <td>
+                                <Button Color="Color.Danger" @onclick="() => RemoveItem(item.Id)">Remove</Button>
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+                <tfoot>
+                    <tr>
+                        <td colspan="4" class="text-end"><strong>Total:</strong></td>
+                        <td><strong>@Cart.TotalPrice.ToString("C")</strong></td>
+                        <td></td>
+                    </tr>
+                </tfoot>
+            </table>
+        </CardBody>
+        <CardFooter>
+            <Button Color="Color.Warning" @onclick="ClearCart">Clear Cart</Button>
+            <Button Color="Color.Primary" @onclick="Checkout">Proceed to Checkout</Button>
+        </CardFooter>
+    </Card>
+}
+
+@code {
+    public CartDto Cart { get; set; }
+
+    protected override async Task OnInitializedAsync()
+    {
+        await GetCart();
+    }
+
+    private async Task GetCart()
+    {
+        // In a real application, you'd get the current user's ID from authentication.
+        // For now, we'll use a dummy ID or retrieve the first cart.
+        // This part needs to be refined based on your authentication setup.
+        Cart = await CartAppService.GetCartByUserIdAsync(Guid.Parse("YOUR_USER_ID_HERE")); 
+        StateHasChanged();
+    }
+
+    private async Task UpdateItemQuantity(Guid cartItemId, int quantity)
+    {
+        if (quantity < 1)
+        {
+            await RemoveItem(cartItemId);
+        }
+        else
+        {
+            await CartAppService.UpdateCartItemQuantityAsync(cartItemId, quantity);
+            await GetCart();
+        }
+    }
+
+    private async Task RemoveItem(Guid cartItemId)
+    {
+        await CartAppService.RemoveItemFromCartAsync(cartItemId);
+        await GetCart();
+    }
+
+    private async Task ClearCart()
+    {
+        await CartAppService.ClearCartAsync(Cart.Id);
+        await GetCart();
+    }
+
+    private void Checkout()
+    {
+        // Logic to proceed to checkout page
+        Navigation.NavigateTo("/checkout");
+    }
+} 

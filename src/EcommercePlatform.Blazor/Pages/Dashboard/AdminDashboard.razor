@@ -1,0 +1,302 @@
+@page "/"
+@inherits AbpComponentBase
+@using EcommercePlatform.Application.Services
+@using Volo.Abp.Application.Dtos
+@inject NavigationManager NavigationManager
+
+<div class="container-fluid">
+    <div class="row mb-4">
+        <div class="col-12">
+            <h1>Dashboard</h1>
+            <p class="text-muted">AI-Powered E-commerce Platform Overview</p>
+        </div>
+    </div>
+
+    @if (IsLoading)
+    {
+        <div class="row">
+            <div class="col-12 text-center py-5">
+                <div class="spinner-border text-primary" role="status">
+                    <span class="visually-hidden">Loading...</span>
+                </div>
+                <p class="mt-3">Loading dashboard data...</p>
+            </div>
+        </div>
+    }
+    else
+    {
+        <div class="row mb-4">
+            <div class="col-md-3">
+                <div class="card bg-primary text-white h-100">
+                    <div class="card-body">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <div>
+                                <h6 class="text-uppercase mb-0">Total Sales</h6>
+                                <h2 class="mt-2 mb-0">$@Stats.TotalSales.ToString("N2")</h2>
+                            </div>
+                            <div class="rounded-circle bg-white bg-opacity-25 p-3">
+                                <i class="fas fa-dollar-sign fa-2x text-white"></i>
+                            </div>
+                        </div>
+                        <div class="mt-3">
+                            <a href="javascript:void(0)" class="text-white" @onclick="NavigateToOrders">View Details <i class="fas fa-arrow-right ms-1"></i></a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="card bg-success text-white h-100">
+                    <div class="card-body">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <div>
+                                <h6 class="text-uppercase mb-0">Orders</h6>
+                                <h2 class="mt-2 mb-0">@Stats.OrdersCount</h2>
+                            </div>
+                            <div class="rounded-circle bg-white bg-opacity-25 p-3">
+                                <i class="fas fa-shopping-cart fa-2x text-white"></i>
+                            </div>
+                        </div>
+                        <div class="mt-3">
+                            <a href="javascript:void(0)" class="text-white" @onclick="NavigateToOrders">View Details <i class="fas fa-arrow-right ms-1"></i></a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="card bg-info text-white h-100">
+                    <div class="card-body">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <div>
+                                <h6 class="text-uppercase mb-0">Products</h6>
+                                <h2 class="mt-2 mb-0">@Stats.ProductsCount</h2>
+                            </div>
+                            <div class="rounded-circle bg-white bg-opacity-25 p-3">
+                                <i class="fas fa-box fa-2x text-white"></i>
+                            </div>
+                        </div>
+                        <div class="mt-3">
+                            <a href="javascript:void(0)" class="text-white" @onclick="NavigateToProducts">View Details <i class="fas fa-arrow-right ms-1"></i></a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="card bg-warning text-white h-100">
+                    <div class="card-body">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <div>
+                                <h6 class="text-uppercase mb-0">Customers</h6>
+                                <h2 class="mt-2 mb-0">@Stats.CustomersCount</h2>
+                            </div>
+                            <div class="rounded-circle bg-white bg-opacity-25 p-3">
+                                <i class="fas fa-users fa-2x text-white"></i>
+                            </div>
+                        </div>
+                        <div class="mt-3">
+                            <a href="javascript:void(0)" class="text-white" @onclick="NavigateToCustomers">View Details <i class="fas fa-arrow-right ms-1"></i></a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="row mb-4">
+            <div class="col-md-8">
+                <div class="card h-100">
+                    <div class="card-header">
+                        <h5 class="mb-0">Sales Overview</h5>
+                    </div>
+                    <div class="card-body">
+                        <div id="salesChart" style="height: 300px;">
+                            <!-- In a real implementation, this would be a chart component -->
+                            <div class="chart-placeholder">
+                                <div class="chart-bars">
+                                    @foreach (var data in SalesData)
+                                    {
+                                        var height = (data.Sales / SalesData.Max(d => d.Sales)) * 100;
+                                        <div class="chart-bar" style="height: @height%;" title="$@data.Sales.ToString("N2")">
+                                            <div class="chart-bar-label">@data.Date</div>
+                                        </div>
+                                    }
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="card h-100">
+                    <div class="card-header">
+                        <h5 class="mb-0">Performance Metrics</h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="mb-4">
+                            <div class="d-flex justify-content-between mb-1">
+                                <span>Average Order Value</span>
+                                <span class="text-primary">$@Stats.AverageOrderValue.ToString("N2")</span>
+                            </div>
+                            <div class="progress" style="height: 10px;">
+                                <div class="progress-bar bg-primary" role="progressbar" style="width: 75%;" aria-valuenow="75" aria-valuemin="0" aria-valuemax="100"></div>
+                            </div>
+                        </div>
+                        <div class="mb-4">
+                            <div class="d-flex justify-content-between mb-1">
+                                <span>Conversion Rate</span>
+                                <span class="text-success">@Stats.ConversionRate.ToString("N1")%</span>
+                            </div>
+                            <div class="progress" style="height: 10px;">
+                                <div class="progress-bar bg-success" role="progressbar" style="width: 65%;" aria-valuenow="65" aria-valuemin="0" aria-valuemax="100"></div>
+                            </div>
+                        </div>
+                        <div class="mb-4">
+                            <div class="d-flex justify-content-between mb-1">
+                                <span>AI Recommendations Accuracy</span>
+                                <span class="text-info">92.5%</span>
+                            </div>
+                            <div class="progress" style="height: 10px;">
+                                <div class="progress-bar bg-info" role="progressbar" style="width: 92%;" aria-valuenow="92" aria-valuemin="0" aria-valuemax="100"></div>
+                            </div>
+                        </div>
+                        <div>
+                            <div class="d-flex justify-content-between mb-1">
+                                <span>Dynamic Pricing Efficiency</span>
+                                <span class="text-warning">88.7%</span>
+                            </div>
+                            <div class="progress" style="height: 10px;">
+                                <div class="progress-bar bg-warning" role="progressbar" style="width: 88%;" aria-valuenow="88" aria-valuemin="0" aria-valuemax="100"></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="row">
+            <div class="col-md-6">
+                <div class="card">
+                    <div class="card-header d-flex justify-content-between align-items-center">
+                        <h5 class="mb-0">Recent Orders</h5>
+                        <a href="javascript:void(0)" @onclick="NavigateToOrders" class="btn btn-sm btn-outline-primary">View All</a>
+                    </div>
+                    <div class="card-body p-0">
+                        <div class="table-responsive">
+                            <table class="table table-hover mb-0">
+                                <thead>
+                                    <tr>
+                                        <th>Order #</th>
+                                        <th>Customer</th>
+                                        <th>Amount</th>
+                                        <th>Status</th>
+                                        <th>Date</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    @foreach (var order in RecentOrders)
+                                    {
+                                        <tr style="cursor: pointer" @onclick="() => NavigateToOrderDetail(order.Id)">
+                                            <td>@order.OrderNumber</td>
+                                            <td>@order.CustomerName</td>
+                                            <td>$@order.TotalAmount.ToString("N2")</td>
+                                            <td><span class="badge @GetOrderStatusClass(order.Status)">@GetOrderStatusLabel(order.Status)</span></td>
+                                            <td>@order.CreationTime.ToString("MMM dd, HH:mm")</td>
+                                        </tr>
+                                    }
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-6">
+                <div class="card">
+                    <div class="card-header d-flex justify-content-between align-items-center">
+                        <h5 class="mb-0">Top Selling Products</h5>
+                        <a href="javascript:void(0)" @onclick="NavigateToProducts" class="btn btn-sm btn-outline-primary">View All</a>
+                    </div>
+                    <div class="card-body p-0">
+                        <div class="table-responsive">
+                            <table class="table table-hover mb-0">
+                                <thead>
+                                    <tr>
+                                        <th>Product</th>
+                                        <th>Sales</th>
+                                        <th>Units</th>
+                                        <th>Rating</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    @foreach (var product in TopProducts)
+                                    {
+                                        <tr style="cursor: pointer" @onclick="() => NavigateToProductDetail(product.Id)">
+                                            <td>@product.Name</td>
+                                            <td>$@product.TotalSales.ToString("N2")</td>
+                                            <td>@product.UnitsSold</td>
+                                            <td>
+                                                <div class="d-flex align-items-center">
+                                                    <span class="me-2">@product.AverageRating.ToString("N1")</span>
+                                                    <div class="text-warning">
+                                                        @for (int i = 1; i <= 5; i++)
+                                                        {
+                                                            if (i <= Math.Floor(product.AverageRating))
+                                                            {
+                                                                <i class="fas fa-star"></i>
+                                                            }
+                                                            else if (i - product.AverageRating < 1 && i - product.AverageRating > 0)
+                                                            {
+                                                                <i class="fas fa-star-half-alt"></i>
+                                                            }
+                                                            else
+                                                            {
+                                                                <i class="far fa-star"></i>
+                                                            }
+                                                        }
+                                                    </div>
+                                                </div>
+                                            </td>
+                                        </tr>
+                                    }
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    }
+</div>
+
+<style>
+    .chart-placeholder {
+        width: 100%;
+        height: 100%;
+        display: flex;
+        align-items: flex-end;
+        justify-content: space-around;
+        padding: 20px 0;
+    }
+
+    .chart-bars {
+        display: flex;
+        width: 100%;
+        height: 250px;
+        align-items: flex-end;
+        justify-content: space-around;
+    }
+
+    .chart-bar {
+        width: 40px;
+        background-color: #007bff;
+        border-radius: 4px 4px 0 0;
+        position: relative;
+        transition: height 0.5s ease;
+    }
+
+    .chart-bar-label {
+        position: absolute;
+        bottom: -25px;
+        left: 50%;
+        transform: translateX(-50%);
+        font-size: 12px;
+        white-space: nowrap;
+    }
+</style>

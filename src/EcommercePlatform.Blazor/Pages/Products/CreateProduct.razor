@@ -1,0 +1,231 @@
+@page "/products/new"
+@inherits AbpComponentBase
+@using EcommercePlatform.Application.Services
+@using EcommercePlatform.Enums
+@inject IProductAppService ProductAppService
+@inject ICategoryAppService CategoryAppService
+@inject NavigationManager NavigationManager
+
+<div class="container-fluid">
+    <div class="row mb-4">
+        <div class="col-12">
+            <h1>Create New Product</h1>
+            <p class="text-muted">Add a new product to your catalog</p>
+        </div>
+    </div>
+
+    <div class="row">
+        <div class="col-md-8">
+            <div class="card">
+                <div class="card-body">
+                    <EditForm Model="@ProductModel" OnValidSubmit="CreateProductAsync">
+                        <DataAnnotationsValidator />
+                        <ValidationSummary />
+
+                        <div class="mb-3">
+                            <label for="name" class="form-label">Product Name</label>
+                            <InputText id="name" class="form-control" @bind-Value="ProductModel.Name" />
+                            <ValidationMessage For="@(() => ProductModel.Name)" />
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="description" class="form-label">Description</label>
+                            <InputTextArea id="description" class="form-control" rows="5" @bind-Value="ProductModel.Description" />
+                            <ValidationMessage For="@(() => ProductModel.Description)" />
+                        </div>
+
+                        <div class="row mb-3">
+                            <div class="col-md-6">
+                                <label for="basePrice" class="form-label">Base Price</label>
+                                <div class="input-group">
+                                    <span class="input-group-text">$</span>
+                                    <InputNumber id="basePrice" class="form-control" @bind-Value="ProductModel.BasePrice" />
+                                </div>
+                                <ValidationMessage For="@(() => ProductModel.BasePrice)" />
+                            </div>
+                            <div class="col-md-6">
+                                <label for="sku" class="form-label">SKU</label>
+                                <InputText id="sku" class="form-control" @bind-Value="ProductModel.Sku" />
+                                <ValidationMessage For="@(() => ProductModel.Sku)" />
+                            </div>
+                        </div>
+
+                        <div class="row mb-3">
+                            <div class="col-md-6">
+                                <label for="category" class="form-label">Category</label>
+                                <InputSelect id="category" class="form-select" @bind-Value="ProductModel.CategoryId">
+                                    <option value="">-- Select Category --</option>
+                                    @foreach (var category in Categories)
+                                    {
+                                        <option value="@category.Id">@category.Name</option>
+                                    }
+                                </InputSelect>
+                                <ValidationMessage For="@(() => ProductModel.CategoryId)" />
+                            </div>
+                            <div class="col-md-6">
+                                <label for="productType" class="form-label">Product Type</label>
+                                <InputSelect id="productType" class="form-select" @bind-Value="ProductModel.ProductType">
+                                    <option value="@ProductType.Physical">Physical</option>
+                                    <option value="@ProductType.Digital">Digital</option>
+                                    <option value="@ProductType.Service">Service</option>
+                                    <option value="@ProductType.Subscription">Subscription</option>
+                                </InputSelect>
+                                <ValidationMessage For="@(() => ProductModel.ProductType)" />
+                            </div>
+                        </div>
+
+                        <div class="row mb-3">
+                            <div class="col-md-6">
+                                <label for="weight" class="form-label">Weight (grams)</label>
+                                <InputNumber id="weight" class="form-control" @bind-Value="ProductModel.Weight" />
+                                <ValidationMessage For="@(() => ProductModel.Weight)" />
+                            </div>
+                            <div class="col-md-6">
+                                <label for="stockQuantity" class="form-label">Stock Quantity</label>
+                                <InputNumber id="stockQuantity" class="form-control" @bind-Value="ProductModel.StockQuantity" />
+                                <ValidationMessage For="@(() => ProductModel.StockQuantity)" />
+                            </div>
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="tags" class="form-label">Tags (comma separated)</label>
+                            <InputText id="tags" class="form-control" @bind-Value="ProductModel.Tags" />
+                            <ValidationMessage For="@(() => ProductModel.Tags)" />
+                        </div>
+
+                        <div class="mb-3">
+                            <div class="form-check">
+                                <InputCheckbox id="publishImmediately" class="form-check-input" @bind-Value="PublishImmediately" />
+                                <label class="form-check-label" for="publishImmediately">
+                                    Publish immediately
+                                </label>
+                            </div>
+                        </div>
+
+                        <div class="d-flex justify-content-between">
+                            <button type="button" class="btn btn-outline-secondary" @onclick="NavigateBack">
+                                <i class="fas fa-arrow-left"></i> Cancel
+                            </button>
+                            <button type="submit" class="btn btn-primary">
+                                <i class="fas fa-save"></i> Create Product
+                            </button>
+                        </div>
+                    </EditForm>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h5 class="mb-0">AI Product Assistance</h5>
+                </div>
+                <div class="card-body">
+                    <p>Use AI to help you create better product descriptions and optimize your product details.</p>
+                    <div class="mb-3">
+                        <label for="aiPrompt" class="form-label">Describe your product</label>
+                        <textarea id="aiPrompt" class="form-control" rows="3" @bind="AiPrompt"></textarea>
+                    </div>
+                    <button type="button" class="btn btn-outline-primary w-100" @onclick="GenerateProductDetailsAsync">
+                        <i class="fas fa-magic"></i> Generate Product Details
+                    </button>
+                </div>
+            </div>
+
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0">Dynamic Pricing</h5>
+                </div>
+                <div class="card-body">
+                    <p>Enable dynamic pricing rules for this product to automatically adjust prices based on various factors.</p>
+                    <div class="form-check form-switch mb-3">
+                        <input class="form-check-input" type="checkbox" id="enableDynamicPricing" @bind="EnableDynamicPricing">
+                        <label class="form-check-label" for="enableDynamicPricing">Enable Dynamic Pricing</label>
+                    </div>
+                    @if (EnableDynamicPricing)
+                    {
+                        <div class="mb-3">
+                            <label for="dynamicPricingRule" class="form-label">Select Pricing Rule</label>
+                            <select id="dynamicPricingRule" class="form-select" @bind="SelectedDynamicPricingRule">
+                                <option value="">-- Select Rule --</option>
+                                <option value="time">Time-based Pricing</option>
+                                <option value="inventory">Inventory-based Pricing</option>
+                                <option value="demand">Demand-based Pricing</option>
+                                <option value="ai">AI-recommended Pricing</option>
+                            </select>
+                        </div>
+                    }
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@code {
+    private CreateProductDto ProductModel { get; set; } = new CreateProductDto();
+    private List<CategoryDto> Categories { get; set; } = new List<CategoryDto>();
+    private bool PublishImmediately { get; set; } = true;
+    private string AiPrompt { get; set; }
+    private bool EnableDynamicPricing { get; set; }
+    private string SelectedDynamicPricingRule { get; set; }
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadCategoriesAsync();
+    }
+
+    private async Task LoadCategoriesAsync()
+    {
+        var result = await CategoryAppService.GetListAsync();
+        Categories = result;
+    }
+
+    private async Task CreateProductAsync()
+    {
+        try
+        {
+            var product = await ProductAppService.CreateAsync(ProductModel);
+            
+            if (PublishImmediately)
+            {
+                await ProductAppService.PublishAsync(product.Id);
+            }
+            
+            await Message.Success("Product created successfully!");
+            NavigateToProductList();
+        }
+        catch (Exception ex)
+        {
+            await Message.Error("Failed to create product: " + ex.Message);
+        }
+    }
+
+    private async Task GenerateProductDetailsAsync()
+    {
+        if (string.IsNullOrWhiteSpace(AiPrompt))
+        {
+            await Message.Warning("Please enter a description of your product first.");
+            return;
+        }
+
+        // In a real implementation, this would call an AI service
+        // For now, we'll simulate a response
+        await Task.Delay(1000); // Simulate API call
+
+        ProductModel.Name = "AI Generated Product";
+        ProductModel.Description = $"This is an AI-generated description based on: {AiPrompt}\n\nThis product features high-quality materials and exceptional craftsmanship. It's designed to meet the needs of modern consumers who value both form and function.";
+        ProductModel.BasePrice = 99.99m;
+        ProductModel.Tags = "ai-generated, premium, quality";
+
+        await Message.Success("AI has generated product details based on your description!");
+    }
+
+    private void NavigateToProductList()
+    {
+        NavigationManager.NavigateTo("/products");
+    }
+
+    private void NavigateBack()
+    {
+        NavigationManager.NavigateTo("/products");
+    }
+}

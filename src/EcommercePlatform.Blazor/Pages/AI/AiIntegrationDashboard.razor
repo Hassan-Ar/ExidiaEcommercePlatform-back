@@ -1,0 +1,461 @@
+@page "/ai-integration"
+@inherits AbpComponentBase
+@using EcommercePlatform.Application.Services
+@inject IAiChatAppService AiChatAppService
+@inject IProductAppService ProductAppService
+@inject IDynamicPricingAppService DynamicPricingAppService
+@inject NavigationManager NavigationManager
+
+<div class="container-fluid">
+    <div class="row mb-4">
+        <div class="col-12">
+            <h1>AI Integration Dashboard</h1>
+            <p class="text-muted">Manage and monitor AI services for your e-commerce platform</p>
+        </div>
+    </div>
+
+    @if (IsLoading)
+    {
+        <div class="row">
+            <div class="col-12 text-center py-5">
+                <div class="spinner-border text-primary" role="status">
+                    <span class="visually-hidden">Loading...</span>
+                </div>
+                <p class="mt-3">Loading AI system data...</p>
+            </div>
+        </div>
+    }
+    else
+    {
+        <div class="row mb-4">
+            <div class="col-12">
+                <div class="card">
+                    <div class="card-body">
+                        <ul class="nav nav-tabs" id="aiTabs" role="tablist">
+                            <li class="nav-item" role="presentation">
+                                <button class="nav-link @(SelectedTab == "overview" ? "active" : "")" @onclick="() => SelectTab("overview")">
+                                    <i class="fas fa-chart-line me-2"></i>Overview
+                                </button>
+                            </li>
+                            <li class="nav-item" role="presentation">
+                                <button class="nav-link @(SelectedTab == "models" ? "active" : "")" @onclick="() => SelectTab("models")">
+                                    <i class="fas fa-brain me-2"></i>AI Models
+                                </button>
+                            </li>
+                            <li class="nav-item" role="presentation">
+                                <button class="nav-link @(SelectedTab == "logs" ? "active" : "")" @onclick="() => SelectTab("logs")">
+                                    <i class="fas fa-list-alt me-2"></i>Integration Logs
+                                </button>
+                            </li>
+                            <li class="nav-item" role="presentation">
+                                <button class="nav-link @(SelectedTab == "settings" ? "active" : "")" @onclick="() => SelectTab("settings")">
+                                    <i class="fas fa-cog me-2"></i>Settings
+                                </button>
+                            </li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        @if (SelectedTab == "overview")
+        {
+            <div class="row mb-4">
+                <div class="col-md-3">
+                    <div class="card h-100">
+                        <div class="card-body text-center">
+                            <div class="mb-3">
+                                @if (SystemStatus.IsConnected)
+                                {
+                                    <div class="rounded-circle bg-success text-white d-inline-flex align-items-center justify-content-center" style="width: 80px; height: 80px;">
+                                        <i class="fas fa-check fa-2x"></i>
+                                    </div>
+                                    <h5 class="mt-3 text-success">Connected</h5>
+                                }
+                                else
+                                {
+                                    <div class="rounded-circle bg-danger text-white d-inline-flex align-items-center justify-content-center" style="width: 80px; height: 80px;">
+                                        <i class="fas fa-times fa-2x"></i>
+                                    </div>
+                                    <h5 class="mt-3 text-danger">Disconnected</h5>
+                                }
+                            </div>
+                            <p class="text-muted">Last sync: @SystemStatus.LastSyncTime.ToString("MMM dd, HH:mm")</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="card h-100">
+                        <div class="card-body">
+                            <h6 class="text-uppercase text-muted mb-2">Active Models</h6>
+                            <div class="d-flex align-items-center">
+                                <h2 class="mb-0 me-2">@SystemStatus.ActiveModels</h2>
+                                <small class="text-muted">/ @AvailableModels.Count</small>
+                            </div>
+                            <div class="mt-3">
+                                <button class="btn btn-sm btn-outline-primary" @onclick="() => SelectTab("models")">
+                                    Manage Models
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="card h-100">
+                        <div class="card-body">
+                            <h6 class="text-uppercase text-muted mb-2">API Usage</h6>
+                            <div class="d-flex align-items-center mb-2">
+                                <h2 class="mb-0 me-2">@SystemStatus.TotalApiCalls</h2>
+                                <small class="text-muted">calls today</small>
+                            </div>
+                            <div class="progress mb-2" style="height: 10px;">
+                                <div class="progress-bar @GetUsageClass()" role="progressbar" style="width: @GetUsagePercentage()%;" aria-valuenow="@GetUsagePercentage()" aria-valuemin="0" aria-valuemax="100"></div>
+                            </div>
+                            <small class="text-muted">@SystemStatus.CurrentUsage.ToString("F1") / @SystemStatus.UsageLimit.ToString("F1") credits used (@GetUsagePercentage()%)</small>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="card h-100">
+                        <div class="card-body">
+                            <h6 class="text-uppercase text-muted mb-2">Performance</h6>
+                            <div class="d-flex justify-content-between mb-2">
+                                <span>Avg. Response Time:</span>
+                                <span class="text-primary">@SystemStatus.AverageResponseTime.ToString("F1") sec</span>
+                            </div>
+                            <div class="d-flex justify-content-between">
+                                <span>Error Rate:</span>
+                                <span class="@(SystemStatus.ErrorRate < 1.0 ? "text-success" : "text-danger")">@SystemStatus.ErrorRate.ToString("F1")%</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="row">
+                <div class="col-md-6">
+                    <div class="card">
+                        <div class="card-header">
+                            <h5 class="mb-0">AI Integration Status</h5>
+                        </div>
+                        <div class="card-body">
+                            <div class="mb-4">
+                                <h6>Chat Assistant</h6>
+                                <div class="d-flex align-items-center">
+                                    <div class="progress flex-grow-1 me-3" style="height: 10px;">
+                                        <div class="progress-bar bg-success" role="progressbar" style="width: 100%;" aria-valuenow="100" aria-valuemin="0" aria-valuemax="100"></div>
+                                    </div>
+                                    <span class="badge bg-success">Active</span>
+                                </div>
+                            </div>
+                            <div class="mb-4">
+                                <h6>Product Recommendations</h6>
+                                <div class="d-flex align-items-center">
+                                    <div class="progress flex-grow-1 me-3" style="height: 10px;">
+                                        <div class="progress-bar bg-success" role="progressbar" style="width: 100%;" aria-valuenow="100" aria-valuemin="0" aria-valuemax="100"></div>
+                                    </div>
+                                    <span class="badge bg-success">Active</span>
+                                </div>
+                            </div>
+                            <div class="mb-4">
+                                <h6>Dynamic Pricing</h6>
+                                <div class="d-flex align-items-center">
+                                    <div class="progress flex-grow-1 me-3" style="height: 10px;">
+                                        <div class="progress-bar bg-success" role="progressbar" style="width: 100%;" aria-valuenow="100" aria-valuemin="0" aria-valuemax="100"></div>
+                                    </div>
+                                    <span class="badge bg-success">Active</span>
+                                </div>
+                            </div>
+                            <div class="mb-4">
+                                <h6>Content Generation</h6>
+                                <div class="d-flex align-items-center">
+                                    <div class="progress flex-grow-1 me-3" style="height: 10px;">
+                                        <div class="progress-bar bg-warning" role="progressbar" style="width: 60%;" aria-valuenow="60" aria-valuemin="0" aria-valuemax="100"></div>
+                                    </div>
+                                    <span class="badge bg-warning text-dark">Partial</span>
+                                </div>
+                            </div>
+                            <div>
+                                <h6>Sentiment Analysis</h6>
+                                <div class="d-flex align-items-center">
+                                    <div class="progress flex-grow-1 me-3" style="height: 10px;">
+                                        <div class="progress-bar bg-secondary" role="progressbar" style="width: 0%;" aria-valuenow="0" aria-valuemin="0" aria-valuemax="100"></div>
+                                    </div>
+                                    <span class="badge bg-secondary">Inactive</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-6">
+                    <div class="card">
+                        <div class="card-header">
+                            <h5 class="mb-0">Recent AI Activities</h5>
+                        </div>
+                        <div class="card-body p-0">
+                            <div class="list-group list-group-flush">
+                                @foreach (var log in RecentLogs.Take(5))
+                                {
+                                    <div class="list-group-item">
+                                        <div class="d-flex justify-content-between align-items-center">
+                                            <div>
+                                                <h6 class="mb-1">@log.Operation</h6>
+                                                <p class="mb-1 text-muted small">@log.Details</p>
+                                                <small class="@GetStatusClass(log.Status)">
+                                                    <i class="fas @(log.Status.ToLower() == "success" ? "fa-check-circle" : "fa-exclamation-circle") me-1"></i>
+                                                    @log.Status (@log.Duration.ToString("F2") sec)
+                                                </small>
+                                            </div>
+                                            <small class="text-muted">@log.Timestamp.ToString("HH:mm")</small>
+                                        </div>
+                                    </div>
+                                }
+                            </div>
+                        </div>
+                        <div class="card-footer text-center">
+                            <button class="btn btn-sm btn-outline-primary" @onclick="() => SelectTab("logs")">
+                                View All Logs
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        }
+        else if (SelectedTab == "models")
+        {
+            <div class="row">
+                <div class="col-12">
+                    <div class="card">
+                        <div class="card-header">
+                            <h5 class="mb-0">AI Models</h5>
+                        </div>
+                        <div class="card-body p-0">
+                            <div class="table-responsive">
+                                <table class="table table-hover mb-0">
+                                    <thead>
+                                        <tr>
+                                            <th>Model</th>
+                                            <th>Type</th>
+                                            <th>Description</th>
+                                            <th>Last Used</th>
+                                            <th>Status</th>
+                                            <th>Actions</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        @foreach (var model in AvailableModels)
+                                        {
+                                            <tr>
+                                                <td>
+                                                    <strong>@model.Name</strong>
+                                                    <small class="d-block text-muted">@model.Id</small>
+                                                </td>
+                                                <td>@model.Type</td>
+                                                <td>@model.Description</td>
+                                                <td>@model.LastUsed.ToString("MMM dd, HH:mm")</td>
+                                                <td>
+                                                    @if (model.IsActive)
+                                                    {
+                                                        <span class="badge bg-success">Active</span>
+                                                    }
+                                                    else
+                                                    {
+                                                        <span class="badge bg-secondary">Inactive</span>
+                                                    }
+                                                </td>
+                                                <td>
+                                                    <button class="btn btn-sm @(model.IsActive ? "btn-outline-danger" : "btn-outline-success")" @onclick="() => ToggleModelStatusAsync(model.Id)">
+                                                        @if (model.IsActive)
+                                                        {
+                                                            <i class="fas fa-pause me-1"></i>
+                                                            <span>Deactivate</span>
+                                                        }
+                                                        else
+                                                        {
+                                                            <i class="fas fa-play me-1"></i>
+                                                            <span>Activate</span>
+                                                        }
+                                                    </button>
+                                                </td>
+                                            </tr>
+                                        }
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        }
+        else if (SelectedTab == "logs")
+        {
+            <div class="row">
+                <div class="col-12">
+                    <div class="card">
+                        <div class="card-header d-flex justify-content-between align-items-center">
+                            <h5 class="mb-0">AI Integration Logs</h5>
+                            <div>
+                                <button class="btn btn-sm btn-outline-secondary">
+                                    <i class="fas fa-filter me-1"></i> Filter
+                                </button>
+                                <button class="btn btn-sm btn-outline-primary ms-2">
+                                    <i class="fas fa-download me-1"></i> Export
+                                </button>
+                            </div>
+                        </div>
+                        <div class="card-body p-0">
+                            <div class="table-responsive">
+                                <table class="table table-hover mb-0">
+                                    <thead>
+                                        <tr>
+                                            <th>Timestamp</th>
+                                            <th>Model</th>
+                                            <th>Operation</th>
+                                            <th>Status</th>
+                                            <th>Duration</th>
+                                            <th>Details</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        @foreach (var log in RecentLogs)
+                                        {
+                                            <tr>
+                                                <td>@log.Timestamp.ToString("MMM dd, HH:mm:ss")</td>
+                                                <td>@log.ModelId</td>
+                                                <td>@log.Operation</td>
+                                                <td>
+                                                    <span class="@GetStatusClass(log.Status)">
+                                                        <i class="fas @(log.Status.ToLower() == "success" ? "fa-check-circle" : "fa-exclamation-circle") me-1"></i>
+                                                        @log.Status
+                                                    </span>
+                                                </td>
+                                                <td>@log.Duration.ToString("F2") sec</td>
+                                                <td>@log.Details</td>
+                                            </tr>
+                                        }
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                        <div class="card-footer">
+                            <nav aria-label="Page navigation">
+                                <ul class="pagination justify-content-center mb-0">
+                                    <li class="page-item disabled">
+                                        <a class="page-link" href="javascript:void(0)" tabindex="-1">Previous</a>
+                                    </li>
+                                    <li class="page-item active"><a class="page-link" href="javascript:void(0)">1</a></li>
+                                    <li class="page-item"><a class="page-link" href="javascript:void(0)">2</a></li>
+                                    <li class="page-item"><a class="page-link" href="javascript:void(0)">3</a></li>
+                                    <li class="page-item">
+                                        <a class="page-link" href="javascript:void(0)">Next</a>
+                                    </li>
+                                </ul>
+                            </nav>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        }
+        else if (SelectedTab == "settings")
+        {
+            <div class="row">
+                <div class="col-md-6">
+                    <div class="card">
+                        <div class="card-header">
+                            <h5 class="mb-0">API Configuration</h5>
+                        </div>
+                        <div class="card-body">
+                            <div class="mb-3">
+                                <label for="apiEndpoint" class="form-label">API Endpoint</label>
+                                <input type="text" class="form-control" id="apiEndpoint" @bind="ApiEndpoint" />
+                                <small class="form-text text-muted">The base URL for the AI service API</small>
+                            </div>
+                            <div class="mb-3">
+                                <label for="apiKey" class="form-label">API Key</label>
+                                <input type="password" class="form-control" id="apiKey" @bind="ApiKey" />
+                                <small class="form-text text-muted">Your secret API key for authentication</small>
+                            </div>
+                            <div class="d-flex justify-content-between">
+                                <button class="btn btn-outline-primary" @onclick="TestConnectionAsync" disabled="@IsTestingConnection">
+                                    @if (IsTestingConnection)
+                                    {
+                                        <span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>
+                                        <span class="ms-1">Testing...</span>
+                                    }
+                                    else
+                                    {
+                                        <i class="fas fa-plug me-1"></i>
+                                        <span>Test Connection</span>
+                                    }
+                                </button>
+                                <button class="btn btn-primary" @onclick="SaveApiConfigurationAsync">
+                                    <i class="fas fa-save me-1"></i>
+                                    <span>Save Configuration</span>
+                                </button>
+                            </div>
+                            @if (ConnectionTestResult != null)
+                            {
+                                <div class="alert @(ConnectionTestSuccess ? "alert-success" : "alert-danger") mt-3">
+                                    @ConnectionTestResult
+                                </div>
+                            }
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-6">
+                    <div class="card">
+                        <div class="card-header">
+                            <h5 class="mb-0">AI Integration Settings</h5>
+                        </div>
+                        <div class="card-body">
+                            <div class="mb-3">
+                                <label class="form-label">Chat Assistant</label>
+                                <div class="form-check form-switch">
+                                    <input class="form-check-input" type="checkbox" id="enableChat" checked />
+                                    <label class="form-check-label" for="enableChat">Enable AI Chat Assistant</label>
+                                </div>
+                                <small class="form-text text-muted">Provides intelligent responses to customer inquiries</small>
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label">Product Recommendations</label>
+                                <div class="form-check form-switch">
+                                    <input class="form-check-input" type="checkbox" id="enableRecommendations" checked />
+                                    <label class="form-check-label" for="enableRecommendations">Enable AI Product Recommendations</label>
+                                </div>
+                                <small class="form-text text-muted">Suggests products based on user behavior and preferences</small>
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label">Dynamic Pricing</label>
+                                <div class="form-check form-switch">
+                                    <input class="form-check-input" type="checkbox" id="enableDynamicPricing" checked />
+                                    <label class="form-check-label" for="enableDynamicPricing">Enable AI Dynamic Pricing</label>
+                                </div>
+                                <small class="form-text text-muted">Optimizes product prices based on market conditions</small>
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label">Content Generation</label>
+                                <div class="form-check form-switch">
+                                    <input class="form-check-input" type="checkbox" id="enableContentGeneration" checked />
+                                    <label class="form-check-label" for="enableContentGeneration">Enable AI Content Generation</label>
+                                </div>
+                                <small class="form-text text-muted">Creates product descriptions and marketing content</small>
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label">Sentiment Analysis</label>
+                                <div class="form-check form-switch">
+                                    <input class="form-check-input" type="checkbox" id="enableSentimentAnalysis" />
+                                    <label class="form-check-label" for="enableSentimentAnalysis">Enable AI Sentiment Analysis</label>
+                                </div>
+                                <small class="form-text text-muted">Analyzes customer reviews and feedback</small>
+                            </div>
+                            <button class="btn btn-primary w-100">
+                                <i class="fas fa-save me-1"></i>
+                                <span>Save Settings</span>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        }
+    }
+</div>

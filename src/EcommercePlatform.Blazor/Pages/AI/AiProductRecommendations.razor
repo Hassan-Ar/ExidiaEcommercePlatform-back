@@ -1,0 +1,264 @@
+@page "/ai-recommendations"
+@inherits AbpComponentBase
+@using EcommercePlatform.Application.Services
+@inject IProductAppService ProductAppService
+@inject NavigationManager NavigationManager
+
+<div class="container-fluid">
+    <div class="row mb-4">
+        <div class="col-12">
+            <h1>AI Product Recommendations</h1>
+            <p class="text-muted">Manage and monitor AI-powered product recommendation models</p>
+        </div>
+    </div>
+
+    @if (IsLoading)
+    {
+        <div class="row">
+            <div class="col-12 text-center py-5">
+                <div class="spinner-border text-primary" role="status">
+                    <span class="visually-hidden">Loading...</span>
+                </div>
+                <p class="mt-3">Loading recommendation data...</p>
+            </div>
+        </div>
+    }
+    else
+    {
+        <div class="row mb-4">
+            <div class="col-md-8">
+                <div class="card">
+                    <div class="card-header">
+                        <h5 class="mb-0">Recommendation Models</h5>
+                    </div>
+                    <div class="card-body p-0">
+                        <div class="table-responsive">
+                            <table class="table table-hover mb-0">
+                                <thead>
+                                    <tr>
+                                        <th style="width: 50px"></th>
+                                        <th>Model</th>
+                                        <th>Description</th>
+                                        <th>Last Trained</th>
+                                        <th>Accuracy</th>
+                                        <th>Status</th>
+                                        <th>Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    @foreach (var model in RecommendationModels)
+                                    {
+                                        <tr>
+                                            <td>
+                                                <div class="form-check">
+                                                    <input class="form-check-input" type="radio" name="selectedModel" 
+                                                           id="model_@model.Id" value="@model.Id" 
+                                                           checked="@(SelectedModelId == model.Id)"
+                                                           @onchange="() => SelectModelAsync(model.Id)" />
+                                                </div>
+                                            </td>
+                                            <td>
+                                                <strong>@model.Name</strong>
+                                            </td>
+                                            <td>@model.Description</td>
+                                            <td>@model.LastTrained.ToString("MMM dd, HH:mm")</td>
+                                            <td>
+                                                <span class="@GetAccuracyClass(model.Accuracy)">
+                                                    @model.Accuracy.ToString("F1")%
+                                                </span>
+                                            </td>
+                                            <td>
+                                                @if (model.IsActive)
+                                                {
+                                                    <span class="badge bg-success">Active</span>
+                                                }
+                                                else
+                                                {
+                                                    <span class="badge bg-secondary">Inactive</span>
+                                                }
+                                            </td>
+                                            <td>
+                                                <div class="btn-group" role="group">
+                                                    <button type="button" class="btn btn-sm @(model.IsActive ? "btn-outline-danger" : "btn-outline-success")" @onclick="() => ToggleModelStatusAsync(model.Id)">
+                                                        @if (model.IsActive)
+                                                        {
+                                                            <i class="fas fa-pause"></i>
+                                                        }
+                                                        else
+                                                        {
+                                                            <i class="fas fa-play"></i>
+                                                        }
+                                                    </button>
+                                                    <button type="button" class="btn btn-sm btn-outline-primary" @onclick="() => StartModelTrainingAsync(model.Id)" disabled="@IsTrainingModel">
+                                                        <i class="fas fa-sync-alt"></i>
+                                                    </button>
+                                                </div>
+                                            </td>
+                                        </tr>
+                                    }
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="card">
+                    <div class="card-header">
+                        <h5 class="mb-0">Performance Metrics</h5>
+                    </div>
+                    <div class="card-body">
+                        @if (IsTrainingModel)
+                        {
+                            <div class="text-center mb-4">
+                                <h6>Training in Progress</h6>
+                                <div class="progress mb-3">
+                                    <div class="progress-bar progress-bar-striped progress-bar-animated" role="progressbar" style="width: @TrainingProgress%;" aria-valuenow="@TrainingProgress" aria-valuemin="0" aria-valuemax="100">@TrainingProgress%</div>
+                                </div>
+                                <p class="text-muted">Please wait while the model is being trained...</p>
+                            </div>
+                        }
+                        
+                        <div class="mb-4">
+                            <div class="d-flex justify-content-between mb-1">
+                                <span>Click-Through Rate:</span>
+                                <span class="text-primary">@Performance.ClickThroughRate.ToString("F1")%</span>
+                            </div>
+                            <div class="progress" style="height: 10px;">
+                                <div class="progress-bar bg-primary" role="progressbar" style="width: @Performance.ClickThroughRate%;" aria-valuenow="@Performance.ClickThroughRate" aria-valuemin="0" aria-valuemax="100"></div>
+                            </div>
+                        </div>
+                        <div class="mb-4">
+                            <div class="d-flex justify-content-between mb-1">
+                                <span>Conversion Rate:</span>
+                                <span class="text-success">@Performance.ConversionRate.ToString("F1")%</span>
+                            </div>
+                            <div class="progress" style="height: 10px;">
+                                <div class="progress-bar bg-success" role="progressbar" style="width: @Performance.ConversionRate%;" aria-valuenow="@Performance.ConversionRate" aria-valuemin="0" aria-valuemax="100"></div>
+                            </div>
+                        </div>
+                        <div class="mb-4">
+                            <div class="d-flex justify-content-between mb-1">
+                                <span>Average Relevance Score:</span>
+                                <span class="text-info">@(Performance.AverageRelevanceScore * 100).ToString("F1")%</span>
+                            </div>
+                            <div class="progress" style="height: 10px;">
+                                <div class="progress-bar bg-info" role="progressbar" style="width: @(Performance.AverageRelevanceScore * 100)%;" aria-valuenow="@(Performance.AverageRelevanceScore * 100)" aria-valuemin="0" aria-valuemax="100"></div>
+                            </div>
+                        </div>
+                        
+                        <div class="row text-center">
+                            <div class="col-4">
+                                <div class="border rounded p-3">
+                                    <h3 class="mb-0">@Performance.TotalRecommendationsServed</h3>
+                                    <small class="text-muted">Recommendations</small>
+                                </div>
+                            </div>
+                            <div class="col-4">
+                                <div class="border rounded p-3">
+                                    <h3 class="mb-0">@Performance.TotalClicks</h3>
+                                    <small class="text-muted">Clicks</small>
+                                </div>
+                            </div>
+                            <div class="col-4">
+                                <div class="border rounded p-3">
+                                    <h3 class="mb-0">@Performance.TotalPurchases</h3>
+                                    <small class="text-muted">Purchases</small>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="row">
+            <div class="col-12">
+                <div class="card">
+                    <div class="card-header d-flex justify-content-between align-items-center">
+                        <h5 class="mb-0">Recent Recommendations</h5>
+                        <div>
+                            <button class="btn btn-sm btn-outline-secondary">
+                                <i class="fas fa-filter me-1"></i> Filter
+                            </button>
+                            <button class="btn btn-sm btn-outline-primary ms-2">
+                                <i class="fas fa-download me-1"></i> Export
+                            </button>
+                        </div>
+                    </div>
+                    <div class="card-body p-0">
+                        <div class="table-responsive">
+                            <table class="table table-hover mb-0">
+                                <thead>
+                                    <tr>
+                                        <th>Timestamp</th>
+                                        <th>User</th>
+                                        <th>Product</th>
+                                        <th>Score</th>
+                                        <th>Clicked</th>
+                                        <th>Purchased</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    @foreach (var recommendation in RecentRecommendations)
+                                    {
+                                        <tr>
+                                            <td>@recommendation.Timestamp.ToString("MMM dd, HH:mm")</td>
+                                            <td>
+                                                <div class="d-flex flex-column">
+                                                    <span>@recommendation.UserName</span>
+                                                    <small class="text-muted">@recommendation.UserId</small>
+                                                </div>
+                                            </td>
+                                            <td>@recommendation.ProductName</td>
+                                            <td>
+                                                <span class="@GetRecommendationScoreClass(recommendation.RecommendationScore)">
+                                                    @recommendation.RecommendationScore.ToString("P1")
+                                                </span>
+                                            </td>
+                                            <td>
+                                                @if (recommendation.WasClicked)
+                                                {
+                                                    <i class="fas fa-check-circle text-success"></i>
+                                                }
+                                                else
+                                                {
+                                                    <i class="fas fa-times-circle text-danger"></i>
+                                                }
+                                            </td>
+                                            <td>
+                                                @if (recommendation.WasPurchased)
+                                                {
+                                                    <i class="fas fa-check-circle text-success"></i>
+                                                }
+                                                else
+                                                {
+                                                    <i class="fas fa-times-circle text-danger"></i>
+                                                }
+                                            </td>
+                                        </tr>
+                                    }
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                    <div class="card-footer">
+                        <nav aria-label="Page navigation">
+                            <ul class="pagination justify-content-center mb-0">
+                                <li class="page-item disabled">
+                                    <a class="page-link" href="javascript:void(0)" tabindex="-1">Previous</a>
+                                </li>
+                                <li class="page-item active"><a class="page-link" href="javascript:void(0)">1</a></li>
+                                <li class="page-item"><a class="page-link" href="javascript:void(0)">2</a></li>
+                                <li class="page-item"><a class="page-link" href="javascript:void(0)">3</a></li>
+                                <li class="page-item">
+                                    <a class="page-link" href="javascript:void(0)">Next</a>
+                                </li>
+                            </ul>
+                        </nav>
+                    </div>
+                </div>
+            </div>
+        </div>
+    }
+</div>

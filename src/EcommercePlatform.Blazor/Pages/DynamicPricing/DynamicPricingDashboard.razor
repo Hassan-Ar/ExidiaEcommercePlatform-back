@@ -1,0 +1,342 @@
+@page "/dynamic-pricing"
+@inherits AbpComponentBase
+@using EcommercePlatform.Application.Services
+@using EcommercePlatform.Enums
+@using Volo.Abp.Application.Dtos
+@inject IDynamicPricingAppService DynamicPricingAppService
+@inject IProductAppService ProductAppService
+@inject NavigationManager NavigationManager
+
+<div class="container-fluid">
+    <div class="row mb-4">
+        <div class="col-12">
+            <h1>Dynamic Pricing</h1>
+            <p class="text-muted">Manage AI-powered dynamic pricing rules for your products</p>
+        </div>
+    </div>
+
+    <div class="row mb-4">
+        <div class="col-md-4">
+            <div class="input-group">
+                <input type="text" class="form-control" placeholder="Search rules..." @bind="SearchTerm" @bind:event="oninput" @onkeyup="@(e => e.Key == "Enter" ? OnSearch() : null)">
+                <button class="btn btn-outline-primary" type="button" @onclick="OnSearch">
+                    <i class="fas fa-search"></i>
+                </button>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="form-check form-switch mt-2">
+                <input class="form-check-input" type="checkbox" id="showActiveOnly" @bind="ShowOnlyActive" @onchange="OnShowActiveToggle">
+                <label class="form-check-label" for="showActiveOnly">Show active rules only</label>
+            </div>
+        </div>
+        <div class="col-md-5 text-end">
+            <button class="btn btn-primary" @onclick="ShowCreateRuleForm">
+                <i class="fas fa-plus"></i> Create New Rule
+            </button>
+        </div>
+    </div>
+
+    @if (IsCreatingRule)
+    {
+        <div class="row mb-4">
+            <div class="col-12">
+                <div class="card">
+                    <div class="card-header">
+                        <h5 class="mb-0">Create New Dynamic Pricing Rule</h5>
+                    </div>
+                    <div class="card-body">
+                        <EditForm Model="@NewRule" OnValidSubmit="CreateRuleAsync">
+                            <DataAnnotationsValidator />
+                            <ValidationSummary />
+
+                            <div class="row mb-3">
+                                <div class="col-md-6">
+                                    <label for="name" class="form-label">Rule Name</label>
+                                    <InputText id="name" class="form-control" @bind-Value="NewRule.Name" />
+                                    <ValidationMessage For="@(() => NewRule.Name)" />
+                                </div>
+                                <div class="col-md-6">
+                                    <label for="ruleType" class="form-label">Rule Type</label>
+                                    <InputSelect id="ruleType" class="form-select" @bind-Value="NewRule.RuleType">
+                                        <option value="@DynamicPriceRuleType.TimeBasedDiscount">Time-based Discount</option>
+                                        <option value="@DynamicPriceRuleType.InventoryBasedPricing">Inventory-based Pricing</option>
+                                        <option value="@DynamicPriceRuleType.CompetitorBasedPricing">Competitor-based Pricing</option>
+                                        <option value="@DynamicPriceRuleType.DemandBasedPricing">Demand-based Pricing</option>
+                                        <option value="@DynamicPriceRuleType.CustomerSegmentPricing">Customer Segment Pricing</option>
+                                        <option value="@DynamicPriceRuleType.BundlePricing">Bundle Pricing</option>
+                                        <option value="@DynamicPriceRuleType.AiRecommendedPricing">AI-recommended Pricing</option>
+                                    </InputSelect>
+                                    <ValidationMessage For="@(() => NewRule.RuleType)" />
+                                </div>
+                            </div>
+
+                            <div class="mb-3">
+                                <label for="description" class="form-label">Description</label>
+                                <InputTextArea id="description" class="form-control" rows="3" @bind-Value="NewRule.Description" />
+                                <ValidationMessage For="@(() => NewRule.Description)" />
+                            </div>
+
+                            <div class="mb-3">
+                                <label for="ruleParameters" class="form-label">Rule Parameters (JSON)</label>
+                                <InputTextArea id="ruleParameters" class="form-control" rows="5" @bind-Value="NewRule.RuleParameters" />
+                                <small class="form-text text-muted">
+                                    Enter rule parameters in JSON format. Example for time-based discount: {"discountPercentage": 15, "daysOfWeek": [1, 2, 3]}
+                                </small>
+                                <ValidationMessage For="@(() => NewRule.RuleParameters)" />
+                            </div>
+
+                            <div class="d-flex justify-content-between">
+                                <button type="button" class="btn btn-outline-secondary" @onclick="CancelCreateRule">
+                                    <i class="fas fa-times"></i> Cancel
+                                </button>
+                                <button type="submit" class="btn btn-primary">
+                                    <i class="fas fa-save"></i> Create Rule
+                                </button>
+                            </div>
+                        </EditForm>
+                    </div>
+                </div>
+            </div>
+        </div>
+    }
+
+    @if (IsEditingRule && EditingRuleId.HasValue)
+    {
+        <div class="row mb-4">
+            <div class="col-12">
+                <div class="card">
+                    <div class="card-header">
+                        <h5 class="mb-0">Edit Dynamic Pricing Rule</h5>
+                    </div>
+                    <div class="card-body">
+                        <EditForm Model="@EditRule" OnValidSubmit="UpdateRuleAsync">
+                            <DataAnnotationsValidator />
+                            <ValidationSummary />
+
+                            <div class="row mb-3">
+                                <div class="col-md-6">
+                                    <label for="editName" class="form-label">Rule Name</label>
+                                    <InputText id="editName" class="form-control" @bind-Value="EditRule.Name" />
+                                    <ValidationMessage For="@(() => EditRule.Name)" />
+                                </div>
+                                <div class="col-md-6">
+                                    <label for="editRuleType" class="form-label">Rule Type</label>
+                                    <InputSelect id="editRuleType" class="form-select" @bind-Value="EditRule.RuleType">
+                                        <option value="@DynamicPriceRuleType.TimeBasedDiscount">Time-based Discount</option>
+                                        <option value="@DynamicPriceRuleType.InventoryBasedPricing">Inventory-based Pricing</option>
+                                        <option value="@DynamicPriceRuleType.CompetitorBasedPricing">Competitor-based Pricing</option>
+                                        <option value="@DynamicPriceRuleType.DemandBasedPricing">Demand-based Pricing</option>
+                                        <option value="@DynamicPriceRuleType.CustomerSegmentPricing">Customer Segment Pricing</option>
+                                        <option value="@DynamicPriceRuleType.BundlePricing">Bundle Pricing</option>
+                                        <option value="@DynamicPriceRuleType.AiRecommendedPricing">AI-recommended Pricing</option>
+                                    </InputSelect>
+                                    <ValidationMessage For="@(() => EditRule.RuleType)" />
+                                </div>
+                            </div>
+
+                            <div class="mb-3">
+                                <label for="editDescription" class="form-label">Description</label>
+                                <InputTextArea id="editDescription" class="form-control" rows="3" @bind-Value="EditRule.Description" />
+                                <ValidationMessage For="@(() => EditRule.Description)" />
+                            </div>
+
+                            <div class="mb-3">
+                                <label for="editRuleParameters" class="form-label">Rule Parameters (JSON)</label>
+                                <InputTextArea id="editRuleParameters" class="form-control" rows="5" @bind-Value="EditRule.RuleParameters" />
+                                <ValidationMessage For="@(() => EditRule.RuleParameters)" />
+                            </div>
+
+                            <div class="row mb-3">
+                                <div class="col-md-6">
+                                    <label for="startDate" class="form-label">Start Date (Optional)</label>
+                                    <InputDate id="startDate" class="form-control" @bind-Value="ValidityPeriod.StartDate" />
+                                </div>
+                                <div class="col-md-6">
+                                    <label for="endDate" class="form-label">End Date (Optional)</label>
+                                    <InputDate id="endDate" class="form-control" @bind-Value="ValidityPeriod.EndDate" />
+                                </div>
+                            </div>
+
+                            <div class="mb-3">
+                                <label for="priority" class="form-label">Priority</label>
+                                <InputNumber id="priority" class="form-control" @bind-Value="PriorityUpdate.Priority" />
+                                <small class="form-text text-muted">
+                                    Higher priority rules are applied first when multiple rules match.
+                                </small>
+                            </div>
+
+                            <div class="d-flex justify-content-between">
+                                <button type="button" class="btn btn-outline-secondary" @onclick="CancelEditRule">
+                                    <i class="fas fa-times"></i> Cancel
+                                </button>
+                                <button type="submit" class="btn btn-primary">
+                                    <i class="fas fa-save"></i> Update Rule
+                                </button>
+                            </div>
+                        </EditForm>
+                    </div>
+                </div>
+            </div>
+        </div>
+    }
+
+    <div class="row">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-body p-0">
+                    <div class="table-responsive">
+                        <table class="table table-striped table-hover mb-0">
+                            <thead>
+                                <tr>
+                                    <th style="cursor: pointer" @onclick="@(() => OnSortChanged("Priority"))">
+                                        Priority
+                                        @if (SortField == "Priority")
+                                        {
+                                            <i class="fas @(SortAscending ? "fa-sort-up" : "fa-sort-down")"></i>
+                                        }
+                                    </th>
+                                    <th style="cursor: pointer" @onclick="@(() => OnSortChanged("Name"))">
+                                        Name
+                                        @if (SortField == "Name")
+                                        {
+                                            <i class="fas @(SortAscending ? "fa-sort-up" : "fa-sort-down")"></i>
+                                        }
+                                    </th>
+                                    <th>Type</th>
+                                    <th>Validity Period</th>
+                                    <th>Status</th>
+                                    <th style="width: 200px">Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @if (Rules.Count == 0)
+                                {
+                                    <tr>
+                                        <td colspan="6" class="text-center py-4">
+                                            <div class="text-muted">
+                                                <i class="fas fa-tags fa-2x mb-2"></i>
+                                                <p>No dynamic pricing rules found</p>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                }
+                                else
+                                {
+                                    @foreach (var rule in Rules)
+                                    {
+                                        <tr>
+                                            <td>@rule.Priority</td>
+                                            <td>
+                                                <div class="d-flex flex-column">
+                                                    <strong>@rule.Name</strong>
+                                                    <small class="text-muted">@(rule.Description.Length > 50 ? rule.Description.Substring(0, 50) + "..." : rule.Description)</small>
+                                                </div>
+                                            </td>
+                                            <td>
+                                                <span class="badge bg-info">@GetRuleTypeLabel(rule.RuleType)</span>
+                                            </td>
+                                            <td>
+                                                @GetValidityPeriodDisplay(rule.StartDate, rule.EndDate)
+                                            </td>
+                                            <td>
+                                                @if (rule.IsActive)
+                                                {
+                                                    <span class="badge bg-success">Active</span>
+                                                }
+                                                else
+                                                {
+                                                    <span class="badge bg-secondary">Inactive</span>
+                                                }
+                                            </td>
+                                            <td>
+                                                <div class="btn-group" role="group">
+                                                    <button type="button" class="btn btn-sm btn-outline-primary" @onclick="() => ShowEditRuleForm(rule)">
+                                                        <i class="fas fa-edit"></i>
+                                                    </button>
+                                                    @if (rule.IsActive)
+                                                    {
+                                                        <button type="button" class="btn btn-sm btn-outline-warning" @onclick="() => DeactivateRuleAsync(rule.Id)">
+                                                            <i class="fas fa-pause"></i>
+                                                        </button>
+                                                    }
+                                                    else
+                                                    {
+                                                        <button type="button" class="btn btn-sm btn-outline-success" @onclick="() => ActivateRuleAsync(rule.Id)">
+                                                            <i class="fas fa-play"></i>
+                                                        </button>
+                                                    }
+                                                    <button type="button" class="btn btn-sm btn-outline-danger" @onclick="() => DeleteRuleAsync(rule.Id)">
+                                                        <i class="fas fa-trash"></i>
+                                                    </button>
+                                                </div>
+                                            </td>
+                                        </tr>
+                                    }
+                                }
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+                <div class="card-footer">
+                    <div class="row align-items-center">
+                        <div class="col-md-6">
+                            <span class="text-muted">Showing @((CurrentPage - 1) * PageSize + 1) to @(Math.Min(CurrentPage * PageSize, TotalCount)) of @TotalCount entries</span>
+                        </div>
+                        <div class="col-md-6">
+                            <nav aria-label="Page navigation">
+                                <ul class="pagination justify-content-end mb-0">
+                                    <li class="page-item @(CurrentPage == 1 ? "disabled" : "")">
+                                        <a class="page-link" href="javascript:void(0)" @onclick="() => OnPageChanged(CurrentPage - 1)" tabindex="-1">Previous</a>
+                                    </li>
+                                    @{
+                                        var totalPages = (int)Math.Ceiling(TotalCount / (double)PageSize);
+                                        var startPage = Math.Max(1, CurrentPage - 2);
+                                        var endPage = Math.Min(totalPages, startPage + 4);
+                                        
+                                        if (startPage > 1)
+                                        {
+                                            <li class="page-item">
+                                                <a class="page-link" href="javascript:void(0)" @onclick="() => OnPageChanged(1)">1</a>
+                                            </li>
+                                            if (startPage > 2)
+                                            {
+                                                <li class="page-item disabled">
+                                                    <a class="page-link" href="javascript:void(0)">...</a>
+                                                </li>
+                                            }
+                                        }
+                                        
+                                        for (var i = startPage; i <= endPage; i++)
+                                        {
+                                            var pageNumber = i;
+                                            <li class="page-item @(pageNumber == CurrentPage ? "active" : "")">
+                                                <a class="page-link" href="javascript:void(0)" @onclick="() => OnPageChanged(pageNumber)">@pageNumber</a>
+                                            </li>
+                                        }
+                                        
+                                        if (endPage < totalPages)
+                                        {
+                                            if (endPage < totalPages - 1)
+                                            {
+                                                <li class="page-item disabled">
+                                                    <a class="page-link" href="javascript:void(0)">...</a>
+                                                </li>
+                                            }
+                                            <li class="page-item">
+                                                <a class="page-link" href="javascript:void(0)" @onclick="() => OnPageChanged(totalPages)">@totalPages</a>
+                                            </li>
+                                        }
+                                    }
+                                    <li class="page-item @(CurrentPage == (int)Math.Ceiling(TotalCount / (double)PageSize) ? "disabled" : "")">
+                                        <a class="page-link" href="javascript:void(0)" @onclick="() => OnPageChanged(CurrentPage + 1)">Next</a>
+                                    </li>
+                                </ul>
+                            </nav>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
