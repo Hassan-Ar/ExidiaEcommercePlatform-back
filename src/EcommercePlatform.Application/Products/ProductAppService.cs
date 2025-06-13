@@ -1,6 +1,8 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Threading.Tasks;
+using EcommercePlatform.BlobStoring;
 using EcommercePlatform.Products;
 using EcommercePlatform.Products.Dtos;
 using Microsoft.AspNetCore.Authorization;
@@ -21,11 +23,15 @@ public class ProductAppService :
     IProductAppService
 {
     private readonly IRepository<Product, Guid> _productRepository;
+    private readonly IBlobStorageService _blobStorageService;
 
-    public ProductAppService(IRepository<Product, Guid> repository)
+    public ProductAppService(
+        IRepository<Product, Guid> repository,
+        IBlobStorageService blobStorageService)
         : base(repository)
     {
         _productRepository = repository;
+        _blobStorageService = blobStorageService;
     }
 
     public async Task<List<ProductDto>> GetByCategoryAsync(Guid categoryId)
@@ -69,5 +75,57 @@ public class ProductAppService :
         }
         await _productRepository.UpdateAsync(product);
         return ObjectMapper.Map<Product, ProductDto>(product);
+    }
+
+    public override async Task<ProductDto> CreateAsync(CreateUpdateProductDto input)
+    {
+        if (input == null) return null;
+
+        var product =  MapToEntity(input); //await base.CreateAsync(input);
+
+        if (input.Image != null)
+        {
+            var imageName = await _blobStorageService.SaveImageAsync(input.Image);
+            product.ImageUrl = _blobStorageService.GetImageUrl(imageName);
+        }
+        await _productRepository.InsertAsync(product,autoSave:true);
+
+        return MapToGetOutputDto(product);
+    }
+
+    public override async Task<ProductDto> UpdateAsync(Guid id, CreateUpdateProductDto input)
+    {
+        var product = MapToEntity(input);
+
+        if (input.Image != null)
+        {
+            // Delete old image if exists
+            if (!string.IsNullOrEmpty(product.ImageUrl))
+            {
+                var oldImageName = product.ImageUrl.Split('/').Last();
+                await _blobStorageService.DeleteImageAsync(oldImageName);
+            }
+
+            // Save new image
+            var imageName = await _blobStorageService.SaveImageAsync(input.Image);
+            product.ImageUrl = _blobStorageService.GetImageUrl(imageName);
+        }
+        await _productRepository.UpdateAsync(product);
+
+        return MapToGetOutputDto(product);
+    }
+
+    public override async Task DeleteAsync(Guid id)
+    {
+        var product = await _productRepository.GetAsync(id);
+        
+        // Delete image if exists
+        if (!string.IsNullOrEmpty(product.ImageUrl))
+        {
+            var imageName = product.ImageUrl.Split('/').Last();
+            await _blobStorageService.DeleteImageAsync(imageName);
+        }
+
+        await base.DeleteAsync(id);
     }
 } 

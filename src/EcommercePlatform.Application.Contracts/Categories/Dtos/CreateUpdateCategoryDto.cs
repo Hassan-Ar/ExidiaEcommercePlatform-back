@@ -1,5 +1,6 @@
 using System;
 using System.ComponentModel.DataAnnotations;
+using Volo.Abp.Content;
 
 namespace EcommercePlatform.Categories.Dtos;
 
@@ -12,10 +13,11 @@ public class CreateUpdateCategoryDto
     [StringLength(2000)]
     public string Description { get; set; }
 
-    [StringLength(512)]
-    public string ImageUrl { get; set; }
+    public IRemoteStreamContent Image { get; set; }
 
     public bool IsActive { get; set; }
 
-    public Guid? ParentCategoryId { get; set; }
+    public Guid? ParentId { get; set; }
+
+    public int DisplayOrder { get; set; }
 } 

@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using EcommercePlatform.Containers;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Cors;
 using Microsoft.AspNetCore.Extensions.DependencyInjection;
@@ -23,12 +24,16 @@ using Volo.Abp.AspNetCore.Mvc.UI.Bundling;
 using Volo.Abp.AspNetCore.Mvc.UI.Theme.Shared;
 using Volo.Abp.AspNetCore.Serilog;
 using Volo.Abp.Autofac;
+using Volo.Abp.BlobStoring;
+using Volo.Abp.BlobStoring.FileSystem;
 using Volo.Abp.Localization;
 using Volo.Abp.Modularity;
 using Volo.Abp.Security.Claims;
 using Volo.Abp.Swashbuckle;
 using Volo.Abp.UI.Navigation.Urls;
 using Volo.Abp.VirtualFileSystem;
+using Microsoft.AspNetCore.Hosting;
+using EcommercePlatform.BlobStoring;
 
 namespace EcommercePlatform;
 
@@ -41,7 +46,8 @@ namespace EcommercePlatform;
     typeof(AbpAspNetCoreMvcUiLeptonXLiteThemeModule),
     typeof(AbpAccountWebOpenIddictModule),
     typeof(AbpAspNetCoreSerilogModule),
-    typeof(AbpSwashbuckleModule)
+    typeof(AbpSwashbuckleModule),
+    typeof(AbpBlobStoringFileSystemModule)
 )]
 public class EcommercePlatformHttpApiHostModule : AbpModule
 {
@@ -70,6 +76,7 @@ public class EcommercePlatformHttpApiHostModule : AbpModule
         ConfigureVirtualFileSystem(context);
         ConfigureCors(context, configuration);
         ConfigureSwaggerServices(context, configuration);
+        ConfigureBlobStorage(context, hostingEnvironment);
     }
 
     private void ConfigureAuthentication(ServiceConfigurationContext context)
@@ -171,6 +178,22 @@ public class EcommercePlatformHttpApiHostModule : AbpModule
                     .AllowAnyHeader()
                     .AllowAnyMethod()
                     .AllowCredentials();
+            });
+        });
+    }
+
+    private void ConfigureBlobStorage(ServiceConfigurationContext context, IWebHostEnvironment hostingEnvironment)
+    {
+        Configure<AbpBlobStoringOptions>(options =>
+        {
+            options.Containers.Configure<EcommerceContainer>(container =>
+            {
+                container.IsMultiTenant = false;
+                container.UseFileSystem(filesystem =>
+                {
+                    filesystem.BasePath = Path.Combine(hostingEnvironment.WebRootPath, "EcommerceImages");
+                    filesystem.AppendContainerNameToBasePath = true;
+                });
             });
         });
     }

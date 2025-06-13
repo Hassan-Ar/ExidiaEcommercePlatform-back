@@ -1,5 +1,6 @@
 using System;
 using System.ComponentModel.DataAnnotations;
+using Volo.Abp.Content;
 
 namespace EcommercePlatform.Products.Dtos;
 
@@ -22,8 +23,7 @@ public class CreateUpdateProductDto
     [StringLength(64)]
     public string SKU { get; set; }
 
-    [StringLength(512)]
-    public string ImageUrl { get; set; }
+    public IRemoteStreamContent Image { get; set; }
 
     public bool IsActive { get; set; }
 

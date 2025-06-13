@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Threading.Tasks;
 using EcommercePlatform.Entities;
 using EcommercePlatform.Enums;
+using EcommercePlatform.Products;
 using Volo.Abp.Domain.Repositories;
 using Volo.Abp.Domain.Services;
 
@@ -180,11 +181,11 @@ namespace EcommercePlatform.Services
             // If no active rules, return base price
             if (activeRules.Count == 0)
             {
-                return product.BasePrice;
+                return product.Price;
             }
 
             // Apply rules to calculate dynamic price
-            decimal dynamicPrice = product.BasePrice;
+            decimal dynamicPrice = product.Price;
             
             foreach (var rule in activeRules)
             {

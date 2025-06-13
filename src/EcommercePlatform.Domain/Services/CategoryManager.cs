@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Threading.Tasks;
+using EcommercePlatform.Categories;
 using EcommercePlatform.Entities;
 using Volo.Abp.Domain.Repositories;
 using Volo.Abp.Domain.Services;
@@ -53,9 +54,9 @@ namespace EcommercePlatform.Services
             // Create category
             var category = new Category(
                 GuidGenerator.Create(),
-                CurrentTenant.Id,
                 name,
                 description,
+                imageUrl:null,
                 parentCategoryId);
 
             return await _categoryRepository.InsertAsync(category);
@@ -106,7 +107,7 @@ namespace EcommercePlatform.Services
             }
 
             // Update category
-            category.Update(name, description, parentCategoryId, displayOrder, imageUrl);
+           // category.Update(name, description, parentCategoryId, displayOrder, imageUrl);
 
             return await _categoryRepository.UpdateAsync(category);
         }

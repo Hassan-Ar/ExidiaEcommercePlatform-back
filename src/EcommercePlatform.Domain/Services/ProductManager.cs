@@ -1,8 +1,10 @@
 using System;
 using System.Collections.Generic;
 using System.Threading.Tasks;
+using EcommercePlatform.Categories;
 using EcommercePlatform.Entities;
 using EcommercePlatform.Enums;
+using EcommercePlatform.Products;
 using Volo.Abp.Domain.Repositories;
 using Volo.Abp.Domain.Services;
 
@@ -73,13 +75,15 @@ namespace EcommercePlatform.Services
             // Create product
             var product = new Product(
                 GuidGenerator.Create(),
-                CurrentTenant.Id,
                 name,
                 description,
                 basePrice,
+                stockQuantity: 0,
+                sku,
+                imageUrl: null,
                 categoryId,
-                productType,
-                sku);
+                CurrentTenant.Id.Value,
+                CurrentTenant.Id);
 
             return await _productRepository.InsertAsync(product);
         }
@@ -129,7 +133,7 @@ namespace EcommercePlatform.Services
             // Update product properties
             product.Name = name;
             product.Description = description;
-            product.UpdateBasePrice(basePrice);
+            product.UpdatePrice(basePrice);
 
             return await _productRepository.UpdateAsync(product);
         }
@@ -142,7 +146,7 @@ namespace EcommercePlatform.Services
         public async Task<Product> PublishAsync(Guid id)
         {
             var product = await _productRepository.GetAsync(id);
-            product.Publish();
+            product.Activate();
             return await _productRepository.UpdateAsync(product);
         }
 
@@ -154,7 +158,7 @@ namespace EcommercePlatform.Services
         public async Task<Product> UnpublishAsync(Guid id)
         {
             var product = await _productRepository.GetAsync(id);
-            product.Unpublish();
+            product.Deactivate();
             return await _productRepository.UpdateAsync(product);
         }
 
@@ -189,7 +193,7 @@ namespace EcommercePlatform.Services
             var sku = $"{prefix}-{suffix}";
             
             // Ensure SKU is unique
-            while (await _productRepository.AnyAsync(p => p.Sku == sku))
+            while (await _productRepository.AnyAsync(p => p.SKU == sku))
             {
                 suffix = random.Next(10000, 99999).ToString();
                 sku = $"{prefix}-{suffix}";

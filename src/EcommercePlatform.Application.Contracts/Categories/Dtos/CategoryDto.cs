@@ -10,4 +10,5 @@ public class CategoryDto : AuditedEntityDto<Guid>
     public string ImageUrl { get; set; }
     public bool IsActive { get; set; }
     public Guid? ParentCategoryId { get; set; }
+    public int DisplayOrder { get; set; }
 } 

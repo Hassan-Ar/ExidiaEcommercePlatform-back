@@ -5,6 +5,7 @@ using EcommercePlatform.Entities;
 using Volo.Abp.Domain.Repositories;
 using Volo.Abp.Domain.Services;
 using EcommercePlatform.Enums;
+using EcommercePlatform.Products;
 
 namespace EcommercePlatform.Services
 {
@@ -104,9 +105,9 @@ namespace EcommercePlatform.Services
                     order.Id,
                     product.Id,
                     product.Name,
-                    product.Sku,
+                    product.SKU,
                     item.Quantity,
-                    product.BasePrice,
+                    product.Price,
                     item.DiscountAmount,
                     item.ItemOptions);
 
