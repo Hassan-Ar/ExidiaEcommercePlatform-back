@@ -11,7 +11,7 @@ public interface IProductAppService :
     ICrudAppService<
         ProductDto,
         Guid,
-        PagedAndSortedResultRequestDto,
+        GetProductListInput,
         CreateUpdateProductDto>
 {
     Task<List<ProductDto>> GetByCategoryAsync(Guid categoryId);

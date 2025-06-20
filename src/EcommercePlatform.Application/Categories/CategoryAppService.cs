@@ -18,7 +18,7 @@ public class CategoryAppService :
         Category,
         CategoryDto,
         Guid,
-        PagedAndSortedResultRequestDto,
+        EcommercePlatform.Categories.Dtos.GetCategoryListInput,
         CreateUpdateCategoryDto>,
     ICategoryAppService
 {
@@ -125,5 +125,35 @@ public class CategoryAppService :
         }
 
         await base.DeleteAsync(id);
+    }
+
+    public override async Task<PagedResultDto<CategoryDto>> GetListAsync(GetCategoryListInput input)
+    {
+        var query = await _categoryRepository.GetQueryableAsync();
+
+        if (!string.IsNullOrWhiteSpace(input.Filter))
+        {
+            query = query.Where(c => c.Name.Contains(input.Filter) || c.Description.Contains(input.Filter));
+        }
+
+        if (input.IsActive.HasValue)
+        {
+            query = query.Where(c => c.IsActive == input.IsActive.Value);
+        }
+
+        if (!string.IsNullOrWhiteSpace(input.Sorting))
+        {
+            query = ApplySorting(query, input);
+        }
+        else
+        {
+            query = query.OrderBy(c => c.Name);
+        }
+
+        var totalCount = query.Count();
+        var items = query.Skip(input.SkipCount).Take(input.MaxResultCount).ToList();
+
+        var dtoList = ObjectMapper.Map<List<Category>, List<CategoryDto>>(items);
+        return new PagedResultDto<CategoryDto>(totalCount, dtoList);
     }
 } 

@@ -9,6 +9,7 @@ using Microsoft.AspNetCore.Authorization;
 using Volo.Abp.Application.Dtos;
 using Volo.Abp.Application.Services;
 using Volo.Abp.Domain.Repositories;
+using EcommercePlatform.Shops;
 
 namespace EcommercePlatform.Products;
 
@@ -18,20 +19,23 @@ public class ProductAppService :
         Product,
         ProductDto,
         Guid,
-        PagedAndSortedResultRequestDto,
+        EcommercePlatform.Products.Dtos.GetProductListInput,
         CreateUpdateProductDto>,
     IProductAppService
 {
     private readonly IRepository<Product, Guid> _productRepository;
     private readonly IBlobStorageService _blobStorageService;
+    private readonly IRepository<EcommercePlatform.Shops.Shop, Guid> _shopRepository;
 
     public ProductAppService(
         IRepository<Product, Guid> repository,
-        IBlobStorageService blobStorageService)
+        IBlobStorageService blobStorageService,
+        IRepository<EcommercePlatform.Shops.Shop, Guid> shopRepository)
         : base(repository)
     {
         _productRepository = repository;
         _blobStorageService = blobStorageService;
+        _shopRepository = shopRepository;
     }
 
     public async Task<List<ProductDto>> GetByCategoryAsync(Guid categoryId)
@@ -81,7 +85,17 @@ public class ProductAppService :
     {
         if (input == null) return null;
 
-        var product =  MapToEntity(input); //await base.CreateAsync(input);
+        var product =  MapToEntity(input);
+
+        // If ShopId is not supplied (default Guid), assign the single existing shop automatically
+        if (product.ShopId == Guid.Empty)
+        {
+            var defaultShop = await _shopRepository.FirstOrDefaultAsync();
+            if (defaultShop != null)
+            {
+                product.ShopId = defaultShop.Id;
+            }
+        }
 
         if (input.Image != null)
         {
@@ -95,22 +109,42 @@ public class ProductAppService :
 
     public override async Task<ProductDto> UpdateAsync(Guid id, CreateUpdateProductDto input)
     {
-        var product = MapToEntity(input);
+        // Retrieve existing entity to avoid concurrency issues
+        var product = await _productRepository.GetAsync(id);
 
+        if (product == null)
+        {
+            throw new Volo.Abp.AbpException($"Product with id {id} not found");
+        }
+
+        // Handle image update if a new image was provided
         if (input.Image != null)
         {
-            // Delete old image if exists
+            // Delete previous image if present
             if (!string.IsNullOrEmpty(product.ImageUrl))
             {
                 var oldImageName = product.ImageUrl.Split('/').Last();
                 await _blobStorageService.DeleteImageAsync(oldImageName);
             }
 
-            // Save new image
             var imageName = await _blobStorageService.SaveImageAsync(input.Image);
             product.ImageUrl = _blobStorageService.GetImageUrl(imageName);
         }
-        await _productRepository.UpdateAsync(product);
+
+        // Map remaining scalar fields from input onto the existing entity
+        MapToEntity(input, product);
+
+        // Ensure ShopId is set: if it became an empty guid (because DTO no longer carries it), assign default shop
+        if (product.ShopId == Guid.Empty)
+        {
+            var defaultShop = await _shopRepository.FirstOrDefaultAsync();
+            if (defaultShop != null)
+            {
+                product.ShopId = defaultShop.Id;
+            }
+        }
+
+        await _productRepository.UpdateAsync(product, autoSave: true);
 
         return MapToGetOutputDto(product);
     }
@@ -127,5 +161,42 @@ public class ProductAppService :
         }
 
         await base.DeleteAsync(id);
+    }
+
+    public override async Task<PagedResultDto<ProductDto>> GetListAsync(GetProductListInput input)
+    {
+        var query = await _productRepository.GetQueryableAsync();
+
+        if (!string.IsNullOrWhiteSpace(input.Filter))
+        {
+            query = query.Where(p => p.Name.Contains(input.Filter) || p.Description.Contains(input.Filter) || p.SKU.Contains(input.Filter));
+        }
+
+        if (input.CategoryId.HasValue && input.CategoryId != Guid.Empty)
+        {
+            query = query.Where(p => p.CategoryId == input.CategoryId.Value);
+        }
+
+        if (input.IsActive.HasValue)
+        {
+            query = query.Where(p => p.IsActive == input.IsActive.Value);
+        }
+
+        // Sorting
+        if (!string.IsNullOrWhiteSpace(input.Sorting))
+        {
+            query = ApplySorting(query, input);
+        }
+        else
+        {
+            query = query.OrderBy(p => p.Name);
+        }
+
+        var totalCount = query.Count();
+        var items = query.Skip(input.SkipCount).Take(input.MaxResultCount).ToList();
+
+        var dtos = ObjectMapper.Map<List<Product>, List<ProductDto>>(items);
+
+        return new PagedResultDto<ProductDto>(totalCount, dtos);
     }
 } 

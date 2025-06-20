@@ -19,7 +19,7 @@ public class CategoryController : EcommercePlatformController
     }
 
     [HttpGet]
-    public virtual Task<PagedResultDto<CategoryDto>> GetListAsync(PagedAndSortedResultRequestDto input)
+    public virtual Task<PagedResultDto<CategoryDto>> GetListAsync(GetCategoryListInput input)
     {
         return _categoryAppService.GetListAsync(input);
     }

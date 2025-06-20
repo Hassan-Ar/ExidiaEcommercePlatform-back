@@ -29,6 +29,4 @@ public class CreateUpdateProductDto
     public bool IsActive { get; set; }
 
     public Guid CategoryId { get; set; }
-
-    public Guid ShopId { get; set; }
 } 

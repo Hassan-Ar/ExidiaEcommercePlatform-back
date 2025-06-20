@@ -11,7 +11,7 @@ public interface ICategoryAppService :
     ICrudAppService<
         CategoryDto,
         Guid,
-        PagedAndSortedResultRequestDto,
+        GetCategoryListInput,
         CreateUpdateCategoryDto>
 {
     Task<List<CategoryDto>> GetSubCategoriesAsync(Guid parentId);
