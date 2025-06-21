@@ -79,4 +79,10 @@ public class CategoryController : EcommercePlatformController
     {
         return _categoryAppService.GetTopAsync(maxCount);
     }
+
+    [HttpGet("lookup")]
+    public virtual Task<List<CategoryLookupDto>> GetLookupAsync()
+    {
+        return _categoryAppService.GetLookupAsync();
+    }
 }

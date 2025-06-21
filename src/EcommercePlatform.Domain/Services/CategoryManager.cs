@@ -56,8 +56,9 @@ namespace EcommercePlatform.Services
                 GuidGenerator.Create(),
                 name,
                 description,
-                imageUrl:null,
-                parentCategoryId);
+                imageUrl: null,
+                displayOrder: 0,
+                parentCategoryId: parentCategoryId);
 
             return await _categoryRepository.InsertAsync(category);
         }

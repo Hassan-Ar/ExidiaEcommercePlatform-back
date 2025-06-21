@@ -13,6 +13,7 @@ public class Category : FullAuditedAggregateRoot<Guid>, IMultiTenant
     public string Description { get; set; }
     public string ImageUrl { get; set; }
     public bool IsActive { get; set; }
+    public int DisplayOrder { get; set; }
     public Guid? ParentCategoryId { get; set; }
     public Category ParentCategory { get; set; }
     public ICollection<Category> SubCategories { get; set; }
@@ -29,6 +30,7 @@ public class Category : FullAuditedAggregateRoot<Guid>, IMultiTenant
         string name,
         string description,
         string imageUrl,
+        int displayOrder = 0,
         Guid? parentCategoryId = null,
         Guid? tenantId = null
     ) : base(id)
@@ -37,6 +39,7 @@ public class Category : FullAuditedAggregateRoot<Guid>, IMultiTenant
         Name = name;
         Description = description;
         ImageUrl = imageUrl;
+        DisplayOrder = displayOrder;
         IsActive = true;
         ParentCategoryId = parentCategoryId;
         SubCategories = new List<Category>();

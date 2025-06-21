@@ -177,4 +177,21 @@ public class CategoryAppService :
 
         return ObjectMapper.Map<List<Category>, List<CategoryDto>>(categories);
     }
+
+    /// <summary>
+    /// Returns a lightweight list of active categories for lookup purposes (id and name only).
+    /// Intended for dropdown lists and navigation menus.
+    /// </summary>
+    public async Task<List<CategoryLookupDto>> GetLookupAsync()
+    {
+        var queryable = await _categoryRepository.GetQueryableAsync();
+
+        var categories = queryable
+            .Where(c => c.IsActive)
+            .OrderBy(c => c.DisplayOrder)
+            .ThenBy(c => c.Name)
+            .ToList();
+
+        return ObjectMapper.Map<List<Category>, List<CategoryLookupDto>>(categories);
+    }
 } 

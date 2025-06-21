@@ -82,10 +82,15 @@ public class CartAppService :
                 TotalPrice = product.Price * input.Quantity
             };
             await _cartItemRepository.InsertAsync(cartItem);
-            cart.Items.Add(cartItem);
+            // After persistence navigation may not refresh; we'll include the new item in calculation next.
         }
 
+        // Reload items from repository to ensure we have fresh collection
+        await _cartRepository.EnsureCollectionLoadedAsync(cart, c => c.Items);
+
+        // Recalculate total price from reloaded items
         cart.TotalPrice = cart.Items.Sum(ci => ci.TotalPrice);
+
         await _cartRepository.UpdateAsync(cart);
 
         return ObjectMapper.Map<Cart, CartDto>(cart);

@@ -1,4 +1,4 @@
-﻿using AutoMapper;
+﻿﻿using AutoMapper;
 using EcommercePlatform.AiChat;
 using EcommercePlatform.AiChat.Dtos;
 using EcommercePlatform.Carts;
@@ -31,6 +31,7 @@ public class EcommercePlatformApplicationAutoMapperProfile : Profile
         // Category mappings
         CreateMap<Category, CategoryDto>();
         CreateMap<CreateUpdateCategoryDto, Category>();
+        CreateMap<Category, CategoryLookupDto>();
 
         // Order mappings
         CreateMap<Order, OrderDto>();

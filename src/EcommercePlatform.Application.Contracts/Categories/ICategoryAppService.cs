@@ -23,4 +23,9 @@ public interface ICategoryAppService :
     /// </summary>
     /// <param name="maxCount">Maximum number of categories to return. Defaults to 6.</param>
     Task<List<CategoryDto>> GetTopAsync(int maxCount = 6);
+
+    /// <summary>
+    /// Returns a lightweight list of active categories for lookup purposes (id and name only).
+    /// </summary>
+    Task<List<CategoryLookupDto>> GetLookupAsync();
 } 
