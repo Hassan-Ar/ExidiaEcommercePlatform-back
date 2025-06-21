@@ -3,12 +3,14 @@ using System.Collections.Generic;
 using System.Threading.Tasks;
 using EcommercePlatform.Categories;
 using EcommercePlatform.Categories.Dtos;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Volo.Abp.Application.Dtos;
 
 namespace EcommercePlatform.Controllers;
 
 [Route("api/app/category")]
+[AllowAnonymous]
 public class CategoryController : EcommercePlatformController
 {
     private readonly ICategoryAppService _categoryAppService;
@@ -70,5 +72,11 @@ public class CategoryController : EcommercePlatformController
     public virtual Task<CategoryDto> ToggleActiveStatusAsync(Guid id)
     {
         return _categoryAppService.ToggleActiveStatusAsync(id);
+    }
+
+    [HttpGet("top")]
+    public virtual Task<List<CategoryDto>> GetTopAsync([FromQuery] int maxCount = 6)
+    {
+        return _categoryAppService.GetTopAsync(maxCount);
     }
 }

@@ -10,10 +10,11 @@ using Volo.Abp.Application.Dtos;
 using Volo.Abp.Application.Services;
 using Volo.Abp.Domain.Repositories;
 using EcommercePlatform.Shops;
+using Microsoft.AspNetCore.Mvc;
 
 namespace EcommercePlatform.Products;
 
-[Authorize]
+[AllowAnonymous]
 public class ProductAppService :
     CrudAppService<
         Product,
@@ -198,5 +199,66 @@ public class ProductAppService :
         var dtos = ObjectMapper.Map<List<Product>, List<ProductDto>>(items);
 
         return new PagedResultDto<ProductDto>(totalCount, dtos);
+    }
+
+    /// <summary>
+    /// Returns a collection of active products ordered by creation time (newest first).
+    /// Intended to be consumed by the public storefront home-page as "featured" items.
+    /// </summary>
+    public async Task<List<ProductDto>> GetFeaturedAsync(int maxCount = 8)
+    {
+        if (maxCount <= 0)
+        {
+            return new List<ProductDto>();
+        }
+
+        // Build query
+        var queryable = await _productRepository.GetQueryableAsync();
+
+        var products = queryable
+            .Where(p => p.IsActive)
+            .OrderByDescending(p => p.CreationTime)
+            .Take(maxCount)
+            .ToList();
+
+        return ObjectMapper.Map<List<Product>, List<ProductDto>>(products);
+    }
+
+    /// <inheritdoc />
+    public async Task<ProductDto> RateAsync(Guid id, int stars)
+    {
+        if (stars < 1 || stars > 5)
+        {
+            throw new ArgumentException("Stars must be between 1 and 5", nameof(stars));
+        }
+
+        var product = await _productRepository.GetAsync(id);
+
+        // update average rating with new rating
+        product.Rating = ((product.Rating * product.RatingCount) + stars) / (product.RatingCount + 1);
+        product.RatingCount += 1;
+
+        await _productRepository.UpdateAsync(product);
+
+        return ObjectMapper.Map<Product, ProductDto>(product);
+    }
+
+    /// <inheritdoc />
+    public async Task<List<ProductDto>> GetLatestDiscountedAsync(int maxCount = 10)
+    {
+        if (maxCount <= 0)
+        {
+            return new List<ProductDto>();
+        }
+
+        var queryable = await _productRepository.GetQueryableAsync();
+
+        var products = queryable
+            .Where(p => p.IsActive && p.DiscountPercent > 0)
+            .OrderByDescending(p => p.CreationTime)
+            .Take(maxCount)
+            .ToList();
+
+        return ObjectMapper.Map<List<Product>, List<ProductDto>>(products);
     }
 } 

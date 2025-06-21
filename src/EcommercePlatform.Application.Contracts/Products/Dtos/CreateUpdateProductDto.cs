@@ -29,4 +29,10 @@ public class CreateUpdateProductDto
     public bool IsActive { get; set; }
 
     public Guid CategoryId { get; set; }
+
+    /// <summary>
+    /// Optional discount percentage to apply to product price.
+    /// </summary>
+    [Range(0, 100)]
+    public decimal? DiscountPercent { get; set; }
 } 

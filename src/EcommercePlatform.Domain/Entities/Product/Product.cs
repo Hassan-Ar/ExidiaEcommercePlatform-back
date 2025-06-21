@@ -19,6 +19,9 @@ public class Product : FullAuditedAggregateRoot<Guid>, IMultiTenant
     public string SKU { get; set; }
     public string ImageUrl { get; set; }
     public bool IsActive { get; set; }
+    public decimal DiscountPercent { get; set; }
+    public double Rating { get; set; }
+    public int RatingCount { get; set; }
     public Guid CategoryId { get; set; }
     public Category Category { get; set; }
     public Guid ShopId { get; set; }
@@ -53,6 +56,9 @@ public class Product : FullAuditedAggregateRoot<Guid>, IMultiTenant
         SKU = sku;
         ImageUrl = imageUrl;
         IsActive = true;
+        DiscountPercent = 0;
+        Rating = 0;
+        RatingCount = 0;
         CategoryId = categoryId;
         ShopId = shopId;
         OrderItems = new List<OrderItem>();

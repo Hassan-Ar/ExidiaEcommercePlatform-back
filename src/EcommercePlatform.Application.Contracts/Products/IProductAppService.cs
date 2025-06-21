@@ -19,4 +19,18 @@ public interface IProductAppService :
     Task<ProductDto> UpdateStockAsync(Guid id, int quantity);
     Task<ProductDto> UpdatePriceAsync(Guid id, decimal newPrice);
     Task<ProductDto> ToggleActiveStatusAsync(Guid id);
+    /// <summary>
+    /// Returns the latest active products to be showcased on the public store home-page.
+    /// </summary>
+    /// <param name="maxCount">Maximum number of items to return. Defaults to 8.</param>
+    /// <returns>A list containing at most <paramref name="maxCount"/> <see cref="ProductDto"/> objects.</returns>
+    Task<List<ProductDto>> GetFeaturedAsync(int maxCount = 8);
+    /// <summary>
+    /// Adds a customer rating (1-5) to the product and returns the updated product.
+    /// </summary>
+    Task<ProductDto> RateAsync(Guid id, int stars);
+    /// <summary>
+    /// Returns the latest products that have a non-zero DiscountPercent.
+    /// </summary>
+    Task<List<ProductDto>> GetLatestDiscountedAsync(int maxCount = 10);
 } 

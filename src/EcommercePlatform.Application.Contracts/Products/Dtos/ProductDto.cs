@@ -12,6 +12,9 @@ public class ProductDto : AuditedEntityDto<Guid>
     public string SKU { get; set; }
     public string ImageUrl { get; set; }
     public bool IsActive { get; set; }
+    public decimal DiscountPercent { get; set; }
+    public double Rating { get; set; }
+    public int RatingCount { get; set; }
     public Guid CategoryId { get; set; }
     public Guid ShopId { get; set; }
 } 

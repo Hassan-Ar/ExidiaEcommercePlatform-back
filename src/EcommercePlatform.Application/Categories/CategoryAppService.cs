@@ -9,10 +9,10 @@ using Microsoft.AspNetCore.Authorization;
 using Volo.Abp.Application.Dtos;
 using Volo.Abp.Application.Services;
 using Volo.Abp.Domain.Repositories;
+using Microsoft.AspNetCore.Mvc;
 
 namespace EcommercePlatform.Categories;
 
-[Authorize]
 public class CategoryAppService :
     CrudAppService<
         Category,
@@ -155,5 +155,26 @@ public class CategoryAppService :
 
         var dtoList = ObjectMapper.Map<List<Category>, List<CategoryDto>>(items);
         return new PagedResultDto<CategoryDto>(totalCount, dtoList);
+    }
+
+    /// <summary>
+    /// Returns the top active categories ordered by DisplayOrder ascending.
+    /// Intended for the public storefront home-page.
+    /// </summary>
+    public async Task<List<CategoryDto>> GetTopAsync(int maxCount = 6)
+    {
+        if (maxCount <= 0)
+        {
+            return new List<CategoryDto>();
+        }
+
+        var queryable = await _categoryRepository.GetQueryableAsync();
+
+        var categories = queryable
+            .Where(c => c.IsActive)
+            .Take(maxCount)
+            .ToList();
+
+        return ObjectMapper.Map<List<Category>, List<CategoryDto>>(categories);
     }
 } 

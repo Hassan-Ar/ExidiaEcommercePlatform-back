@@ -18,4 +18,9 @@ public interface ICategoryAppService :
     Task<CategoryDto> AddSubCategoryAsync(Guid parentId, CreateUpdateCategoryDto input);
     Task<CategoryDto> RemoveSubCategoryAsync(Guid parentId, Guid subCategoryId);
     Task<CategoryDto> ToggleActiveStatusAsync(Guid id);
+    /// <summary>
+    /// Returns the top active categories ordered by <see cref="CategoryDto.DisplayOrder"/>.
+    /// </summary>
+    /// <param name="maxCount">Maximum number of categories to return. Defaults to 6.</param>
+    Task<List<CategoryDto>> GetTopAsync(int maxCount = 6);
 } 

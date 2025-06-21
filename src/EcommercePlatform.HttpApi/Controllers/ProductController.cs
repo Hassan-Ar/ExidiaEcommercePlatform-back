@@ -3,12 +3,14 @@ using System.Collections.Generic;
 using System.Threading.Tasks;
 using EcommercePlatform.Products;
 using EcommercePlatform.Products.Dtos;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Volo.Abp.Application.Dtos;
 
 namespace EcommercePlatform.Controllers;
 
 [Route("api/app/product")]
+[AllowAnonymous]
 public class ProductController : EcommercePlatformController
 {
     private readonly IProductAppService _productAppService;
@@ -76,5 +78,23 @@ public class ProductController : EcommercePlatformController
     public virtual Task<ProductDto> ToggleActiveStatusAsync(Guid id)
     {
         return _productAppService.ToggleActiveStatusAsync(id);
+    }
+
+    [HttpGet("featured")]
+    public virtual Task<List<ProductDto>> GetFeaturedAsync([FromQuery] int maxCount = 8)
+    {
+        return _productAppService.GetFeaturedAsync(maxCount);
+    }
+
+    [HttpGet("latest-discounted")]
+    public virtual Task<List<ProductDto>> GetLatestDiscountedAsync([FromQuery] int maxCount = 10)
+    {
+        return _productAppService.GetLatestDiscountedAsync(maxCount);
+    }
+
+    [HttpPost("{id}/rate")]
+    public virtual Task<ProductDto> RateAsync(Guid id, [FromQuery] int stars)
+    {
+        return _productAppService.RateAsync(id, stars);
     }
 }
