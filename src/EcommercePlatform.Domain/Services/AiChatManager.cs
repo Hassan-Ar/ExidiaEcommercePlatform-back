@@ -42,7 +42,6 @@ namespace EcommercePlatform.Services
             // Create chat session
             var chatSession = new AiChatSession(
                 GuidGenerator.Create(),
-                CurrentTenant.Id,
                 userId,
                 sessionIdentifier);
 

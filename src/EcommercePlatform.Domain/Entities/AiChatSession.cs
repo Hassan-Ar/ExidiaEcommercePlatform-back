@@ -56,12 +56,11 @@ namespace EcommercePlatform.Entities
         /// <param name="sessionIdentifier">A unique identifier for the session.</param>
         public AiChatSession(
             Guid id,
-            Guid? tenantId,
             Guid? userId,
             string sessionIdentifier)
             : base(id)
         {
-            TenantId = tenantId;
+            //TenantId = tenantId;
             UserId = userId;
             SessionIdentifier = sessionIdentifier;
             IsActive = true;
