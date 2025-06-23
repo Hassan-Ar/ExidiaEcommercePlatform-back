@@ -34,6 +34,6 @@ public class EcommercePlatformApplicationModule : AbpModule
         // Register AI Shopping Assistant dependencies
         context.Services.AddTransient<EcommercePlatform.ChatAssistant.IProductSearchService, EcommercePlatform.ChatAssistant.ProductSearchService>();
         context.Services.AddTransient<EcommercePlatform.ChatAssistant.IChatAssistantAppService, EcommercePlatform.ChatAssistant.ChatAssistantAppService>();
-        context.Services.AddSingleton(provider => new EcommercePlatform.ChatAssistant.OllamaLLMClient("http://localhost:11434", "llama3"));
+        context.Services.AddSingleton(provider => new EcommercePlatform.ChatAssistant.OllamaLLMClient("http://localhost:11434", "llama3.2:latest"));// "deepseek-r1:7b"));
     }
 }
