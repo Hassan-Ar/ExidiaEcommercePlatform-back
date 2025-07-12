@@ -87,7 +87,7 @@ public class ProductAppService :
         if (input == null) return null;
 
         var product =  MapToEntity(input);
-
+  
         // If ShopId is not supplied (default Guid), assign the single existing shop automatically
         if (product.ShopId == Guid.Empty)
         {
